@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Route snapper demo</title>
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+    <link
+      href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+      #snap-tool {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 10px;
+
+        background-color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="snap-tool">
+      <!-- TODO the text should be fixed, and the progress bar float -->
+      <div id="snap-progress">Route tool loading...</div>
+    </div>
+    <script type="module">
+      import {
+        RouteSnapper,
+        fetchWithProgress,
+      } from "./route-snapper-js/lib.js";
+
+      let map = new maplibregl.Map({
+        container: "map",
+        style:
+          "https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL",
+        center: [-0.05466, 51.54996],
+        zoom: 12,
+      });
+
+      // TODO Slight hack. These files are stored in an S3 bucket, which only has an HTTP interface. When deployed to Githu
+      const url = `https://play.abstreet.org/route-snappers/Hackney.bin`;
+      try {
+        const graphBytes = await fetchWithProgress(url, "snap-progress");
+        let routeSnapper = new RouteSnapper(map, graphBytes);
+      } catch (err) {
+        console.log(`Route tool broke: ${err}`);
+        document.getElementById("snap-tool").innerHTML = "Failed to load";
+      }
+    </script>
+  </body>
+</html>

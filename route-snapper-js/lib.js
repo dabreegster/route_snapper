@@ -3,11 +3,10 @@ import init, { JsRouteSnapper } from "./pkg/route_snapper_js.js";
 await init();
 
 export class RouteSnapper {
-  constructor(app, mapBytes) {
+  constructor(map, mapBytes) {
     const circleRadiusPixels = 10;
 
-    this.app = app;
-    this.map = app.map;
+    this.map = map;
     console.time("Deserialize and setup JsRouteSnapper");
     this.inner = new JsRouteSnapper(mapBytes);
     console.timeEnd("Deserialize and setup JsRouteSnapper");
@@ -161,9 +160,7 @@ export class RouteSnapper {
     const div = document.getElementById("snap-tool");
     div.innerHTML = "";
     var btn = document.createElement("button");
-    btn.classList.add("mapbox-gl-draw_ctrl-draw-btn");
-    btn.classList.add("draw-route-icon");
-    btn.title = "Route tool";
+    btn.innerText = "Route tool";
     btn.type = "button";
     btn.onclick = () => {
       this.#activeControl();
@@ -199,27 +196,8 @@ export class RouteSnapper {
     // Update the source-of-truth in drawControls
     const rawJSON = this.inner.toFinalFeature();
     if (rawJSON) {
-      const json = JSON.parse(rawJSON);
-      const ids = this.app.drawControls.add(json);
-
-      // drawControls assigns an ID. When we open the form, pass in the feature with that ID, and some properties pre-filled out
-      json.id = ids[0];
-
-      json.properties.intervention_type = "route";
-      this.app.drawControls.setFeatureProperty(
-        json.id,
-        "intervention_type",
-        "route"
-      );
-
-      this.app.updateSidebar();
-      this.app.openForm(json);
-      this.app.saveToLocalStorage();
-
-      // Act like we've selected the line-string we just drew
-      this.app.drawControls.changeMode("direct_select", {
-        featureId: json.id,
-      });
+      // TODO Events
+      console.log(`Success! ${rawJSON}`);
     }
     this.#inactiveControl();
   }
