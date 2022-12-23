@@ -1,6 +1,6 @@
 ## Publishing a new version
 
-To release a new version of <https://www.npmjs.com/package/route_snapper>:
+To release a new version of <https://www.npmjs.com/package/route-snapper>:
 
 1.  Bump the version number in `route-snapper/Cargo.toml`
 2.  Make sure `router-snapper/pkg/` has the release build with `--target web` and that `lib.js` is in there. If you `cd examples; ./serve_locally.sh`, then this'll happen
