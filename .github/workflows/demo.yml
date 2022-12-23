@@ -15,12 +15,12 @@ jobs:
 
       - name: Build web app
         run: |
-                wasm-pack build --release --target web route-snapper-js
+                wasm-pack build --release --target web route-snapper
 
-                mkdir -p publish/route-snapper-js
+                mkdir -p publish/route-snapper
                 cp examples/index.html publish
-                cp -Rv route-snapper-js/lib.js route-snapper-js/pkg publish/route-snapper-js
-                rm -f publish/route-snapper-js/pkg/.gitignore
+                cp -Rv route-snapper/lib.js route-snapper/pkg publish/route-snapper
+                rm -f publish/route-snapper/pkg/.gitignore
 
       - name: Publish
         uses: peaceiris/actions-gh-pages@v3
