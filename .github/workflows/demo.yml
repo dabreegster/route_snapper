@@ -19,7 +19,7 @@ jobs:
 
                 mkdir -p publish/route-snapper-js
                 cp examples/index.html publish
-                cp -Rv route-snapper-js/lib.js route-snapper-js/pkg route-snapper/route-snapper-js
+                cp -Rv route-snapper-js/lib.js route-snapper-js/pkg publish/route-snapper-js
                 rm -f publish/route-snapper-js/pkg/.gitignore
 
       - name: Publish
