@@ -125,7 +125,11 @@
       const url = `https://play.abstreet.org/route-snappers/Hackney.bin`;
       try {
         const graphBytes = await fetchWithProgress(url, "snap-progress");
-        let routeSnapper = new RouteSnapper(map, graphBytes);
+        let routeSnapper = new RouteSnapper(
+          map,
+          graphBytes,
+          document.getElementById("snap-tool")
+        );
       } catch (err) {
         console.log(`Route tool broke: ${err}`);
         document.getElementById("snap-tool").innerHTML = "Failed to load";
