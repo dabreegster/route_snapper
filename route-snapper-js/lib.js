@@ -195,8 +195,9 @@ export class RouteSnapper {
     // Update the source-of-truth in drawControls
     const rawJSON = this.inner.toFinalFeature();
     if (rawJSON) {
-      // TODO Events
-      console.log(`Success! ${rawJSON}`);
+      this.controlDiv.dispatchEvent(
+        new CustomEvent("new-route", { detail: JSON.parse(rawJSON) })
+      );
     }
     this.#inactiveControl();
   }
