@@ -40,10 +40,17 @@
       <div id="snap-progress">Route tool loading...</div>
     </div>
     <script type="module">
+      // Use the locally built version
       import {
         RouteSnapper,
         fetchWithProgress,
       } from "./route-snapper/pkg/lib.js";
+
+      // Comment the above and use the published NPM version instead:
+      /*import {
+        RouteSnapper,
+        fetchWithProgress,
+      } from "https://unpkg.com/route-snapper@0.1.0/lib.js";*/
 
       let map = new maplibregl.Map({
         container: "map",
