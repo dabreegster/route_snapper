@@ -1,0 +1,29 @@
+name: Deploy demo
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+
+      - name: Build web app
+        run: |
+                wasm-pack build --release --target web route-snapper-js
+
+                mkdir -p publish/route-snapper-js
+                cp examples/index.html publish
+                cp -Rv route-snapper-js/lib.js route-snapper-js/pkg route-snapper/route-snapper-js
+                rm -f publish/route-snapper-js/pkg/.gitignore
+
+      - name: Publish
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./publish/
