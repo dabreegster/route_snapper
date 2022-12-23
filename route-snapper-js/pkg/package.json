@@ -1,0 +1,12 @@
+{
+  "name": "route-snapper-js",
+  "version": "0.1.0",
+  "files": [
+    "route_snapper_js_bg.wasm",
+    "route_snapper_js.js",
+    "route_snapper_js.d.ts"
+  ],
+  "module": "route_snapper_js.js",
+  "types": "route_snapper_js.d.ts",
+  "sideEffects": false
+}
