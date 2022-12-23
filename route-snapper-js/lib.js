@@ -3,12 +3,13 @@ import init, { JsRouteSnapper } from "./pkg/route_snapper_js.js";
 await init();
 
 export class RouteSnapper {
-  constructor(map, mapBytes) {
+  constructor(map, graphBytes, controlDiv) {
     const circleRadiusPixels = 10;
 
+    this.controlDiv = controlDiv;
     this.map = map;
     console.time("Deserialize and setup JsRouteSnapper");
-    this.inner = new JsRouteSnapper(mapBytes);
+    this.inner = new JsRouteSnapper(graphBytes);
     console.timeEnd("Deserialize and setup JsRouteSnapper");
     console.log("JsRouteSnapper ready, waiting for idle event");
     this.active = false;
@@ -157,29 +158,27 @@ export class RouteSnapper {
     this.inner.clearState();
     this.#redraw();
 
-    const div = document.getElementById("snap-tool");
-    div.innerHTML = "";
+    this.controlDiv.innerHTML = "";
     var btn = document.createElement("button");
     btn.innerText = "Route tool";
     btn.type = "button";
     btn.onclick = () => {
       this.#activeControl();
     };
-    div.appendChild(btn);
+    this.controlDiv.appendChild(btn);
   }
 
   #activeControl() {
     this.active = true;
 
-    const div = document.getElementById("snap-tool");
-    div.innerHTML = "";
+    this.controlDiv.innerHTML = "";
     var btn = document.createElement("button");
     btn.type = "button";
     btn.innerText = "Finish route";
     btn.onclick = () => {
       this.#finishSnapping();
     };
-    div.appendChild(btn);
+    this.controlDiv.appendChild(btn);
 
     const instructions = document.createElement("ul");
     instructions.innerHTML =
@@ -189,7 +188,7 @@ export class RouteSnapper {
       `<li><b>Click</b> a red waypoint to delete it</li>` +
       `<li>Press <b>Enter</b> to finish route</li>`;
 
-    div.appendChild(instructions);
+    this.controlDiv.appendChild(instructions);
   }
 
   #finishSnapping() {
