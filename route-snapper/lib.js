@@ -1,6 +1,6 @@
 import init, { JsRouteSnapper } from "./route_snapper.js";
 
-await init();
+export { init };
 
 export class RouteSnapper {
   constructor(map, graphBytes, controlDiv) {

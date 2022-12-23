@@ -42,6 +42,7 @@
     <script type="module">
       // Use the locally built version
       import {
+        init,
         RouteSnapper,
         fetchWithProgress,
       } from "./route-snapper/pkg/lib.js";
@@ -151,6 +152,8 @@
             map.getSource("finished-routes").setData(completedRoutes);
           });
       });
+
+      await init();
 
       // TODO Slight hack. These files are stored in an S3 bucket, which only has an HTTP interface. When deployed to Githu
       const url = `https://play.abstreet.org/route-snappers/Hackney.bin`;
