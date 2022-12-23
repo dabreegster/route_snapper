@@ -119,6 +119,30 @@
             "line-width": 5,
           },
         });
+
+        var completedRoutes = {
+          type: "FeatureCollection",
+          features: [],
+        };
+        map.addSource("finished-routes", {
+          type: "geojson",
+          data: completedRoutes,
+        });
+        map.addLayer({
+          id: "finished-routes",
+          source: "finished-routes",
+          type: "line",
+          paint: {
+            "line-color": "blue",
+            "line-width": 5,
+          },
+        });
+        document
+          .getElementById("snap-tool")
+          .addEventListener("new-route", (e) => {
+            completedRoutes.features.push(e.detail);
+            map.getSource("finished-routes").setData(completedRoutes);
+          });
       });
 
       // TODO Slight hack. These files are stored in an S3 bucket, which only has an HTTP interface. When deployed to Githu
