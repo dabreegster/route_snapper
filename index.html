@@ -31,9 +31,15 @@
 
         background-color: white;
       }
+      #clear {
+        position: absolute;
+        z-index: 5;
+        padding: 20px;
+      }
     </style>
   </head>
   <body>
+    <button type="button" id="clear">Clear routes</button>
     <div id="map"></div>
     <div id="snap-tool">
       <!-- TODO the text should be fixed, and the progress bar float -->
@@ -113,6 +119,11 @@
             completedRoutes.features.push(e.detail);
             map.getSource("finished-routes").setData(completedRoutes);
           });
+
+        document.getElementById("clear").onclick = () => {
+          completedRoutes.features = [];
+          map.getSource("finished-routes").setData(completedRoutes);
+        };
       });
 
       await init();
