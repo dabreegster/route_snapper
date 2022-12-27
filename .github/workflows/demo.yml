@@ -16,10 +16,11 @@ jobs:
       - name: Build web app
         run: |
                 wasm-pack build --release --target web route-snapper
+                cp route-snapper/lib.js route-snapper/pkg
 
                 mkdir -p publish/route-snapper
                 cp examples/index.html examples/southwark.bin publish
-                cp -Rv route-snapper/lib.js route-snapper/pkg publish/route-snapper
+                cp -Rv route-snapper/pkg publish/route-snapper
                 rm -f publish/route-snapper/pkg/.gitignore
 
       - name: Publish
