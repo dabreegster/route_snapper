@@ -158,7 +158,10 @@
       // TODO Slight hack. These files are stored in an S3 bucket, which only has an HTTP interface. When deployed to Githu
       const url = `https://play.abstreet.org/route-snappers/Hackney.bin`;
       try {
-        const graphBytes = await fetchWithProgress(url, "snap-progress");
+        const graphBytes = await fetchWithProgress(
+          url,
+          document.getElementById("snap-progress")
+        );
         let routeSnapper = new RouteSnapper(
           map,
           graphBytes,
