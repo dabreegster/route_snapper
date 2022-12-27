@@ -18,3 +18,9 @@ cargo run --release \
   path_to_osm.xml \
   path_to_boundary.geojson
 ```
+
+## MapLibre gotchas
+
+You must specify `boxZoom: false` when creating your
+[Map](https://maplibre.org/maplibre-gl-js-docs/api/map/), or shift-click for
+drawing freehand points won't work.
