@@ -209,12 +209,11 @@ export class RouteSnapper {
   }
 }
 
-export async function fetchWithProgress(url, progressId) {
+export async function fetchWithProgress(url, progressBar) {
   const response = await fetch(url);
   const reader = response.body.getReader();
 
   const contentLength = response.headers.get("Content-Length");
-  const progressBar = document.getElementById(progressId);
 
   let receivedLength = 0;
   let chunks = [];
