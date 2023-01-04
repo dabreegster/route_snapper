@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.2
+
 - fetchWithProgress takes an element, not ID, to work better with Svelte
 - Added `isActive()` method and new events `activate` and `no-new-route`
 
