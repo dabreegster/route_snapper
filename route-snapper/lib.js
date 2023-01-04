@@ -152,6 +152,10 @@ export class RouteSnapper {
     });
   }
 
+  isActive() {
+    return this.active;
+  }
+
   #inactiveControl() {
     this.active = false;
 
@@ -170,6 +174,7 @@ export class RouteSnapper {
 
   #activeControl() {
     this.active = true;
+    this.controlDiv.dispatchEvent(new CustomEvent("activate"));
 
     this.controlDiv.innerHTML = "";
     var btn = document.createElement("button");
@@ -198,6 +203,8 @@ export class RouteSnapper {
       this.controlDiv.dispatchEvent(
         new CustomEvent("new-route", { detail: JSON.parse(rawJSON) })
       );
+    } else {
+      this.controlDiv.dispatchEvent(new CustomEvent("no-new-route"));
     }
     this.#inactiveControl();
   }

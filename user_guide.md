@@ -19,8 +19,47 @@ cargo run --release \
   [-b path_to_boundary.geojson]
 ```
 
-## MapLibre gotchas
+## Adding to a MapLibre app
+
+See [the end-to-end
+example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.html).
+
+### Installation
+
+If you're using NPM, do `npm i route-snapper` and then in your JS:
+
+```
+import { init, RouteSnapper, fetchWithProgress } from "route-snapper/lib.js";
+```
+
+You can also load from a CDN:
+
+```
+import {
+  init,
+  RouteSnapper,
+  fetchWithProgress,
+} from "https://unpkg.com/route-snapper/lib.js";
+```
+
+### Setup
+
+The div, fetchWithProgress, constructing the tool
+
+### Events
+
+activate, new-route, no-new-route
+
+### MapLibre gotchas
 
 You must specify `boxZoom: false` when creating your
 [Map](https://maplibre.org/maplibre-gl-js-docs/api/map/), or shift-click for
 drawing freehand points won't work.
+
+### Using with mapbox-gl-draw
+
+[mapbox-gl-draw](https://github.com/mapbox/mapbox-gl-draw) is a common plugin
+for drawing things on a map. There are a few tricks to making `route-snapper`
+work with it.
+
+static mode...
