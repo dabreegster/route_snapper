@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 abstutil = { git = "https://github.com/a-b-street/abstreet" }
 bincode = "1.3.1"
+clap = { version = "4.0.32", features = ["derive"] }
 geom = { git = "https://github.com/a-b-street/abstreet" }
 osm2streets = { git = "https://github.com/a-b-street/osm2streets", rev = "66494d34aaa78415957d605d97cda47ea203055e" }
 route-snapper-graph = { path = "../route-snapper-graph" }

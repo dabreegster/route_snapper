@@ -3,29 +3,42 @@ use std::fs::File;
 use std::io::BufWriter;
 
 use abstutil::Timer;
+use clap::Parser;
 use geom::LonLat;
 
 use route_snapper_graph::{Edge, NodeID, RouteSnapperMap};
 
+#[derive(Parser)]
+struct Args {
+    /// Path to a .osm.xml file to convert
+    #[arg(short, long)]
+    input_osm: String,
+
+    /// Path to GeoJSON file with the boundary to clip the input to
+    #[arg(short, long)]
+    boundary: Option<String>,
+
+    /// Output file to write
+    #[arg(short, long, default_value = "snap.bin")]
+    output: String,
+}
+
 fn main() {
+    let args = Args::parse();
+
     let mut timer = Timer::new("convert OSM to route snapper graph");
 
-    let osm_filename = std::env::args().nth(1).expect("no osm filename provided");
-    let geojson_filename = std::env::args()
-        .nth(2)
-        .expect("no geojson filename provided");
     let (streets, _) = streets_reader::osm_to_street_network(
-        &std::fs::read_to_string(osm_filename).unwrap(),
-        Some(LonLat::read_geojson_polygon(&geojson_filename).unwrap()),
+        &std::fs::read_to_string(args.input_osm).unwrap(),
+        args.boundary
+            .map(|path| LonLat::read_geojson_polygon(&path).unwrap()),
         osm2streets::MapConfig::default(),
         &mut timer,
     )
     .unwrap();
     let snapper = streets_to_snapper(&streets);
 
-    let output = BufWriter::new(
-        File::create(format!("{}.bin", abstutil::basename(geojson_filename))).unwrap(),
-    );
+    let output = BufWriter::new(File::create(args.output).unwrap());
     bincode::serialize_into(output, &snapper).unwrap();
 }
 
