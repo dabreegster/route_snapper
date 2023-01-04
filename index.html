@@ -36,10 +36,17 @@
         z-index: 5;
         padding: 20px;
       }
+      #status {
+        position: absolute;
+        left: 150px;
+        z-index: 5;
+        padding: 20px;
+        background-color: white;
     </style>
   </head>
   <body>
     <button type="button" id="clear">Clear routes</button>
+    <div id="status">Inactive</div>
     <div id="map"></div>
     <div id="snap-tool">
       <!-- TODO the text should be fixed, and the progress bar float -->
@@ -55,9 +62,10 @@
 
       // Comment the above and use the published NPM version instead:
       /*import {
+        init,
         RouteSnapper,
         fetchWithProgress,
-      } from "https://unpkg.com/route-snapper@0.1.0/lib.js";*/
+      } from "https://unpkg.com/route-snapper/lib.js";*/
 
       let map = new maplibregl.Map({
         container: "map",
@@ -114,12 +122,19 @@
             "line-width": 5,
           },
         });
-        document
-          .getElementById("snap-tool")
-          .addEventListener("new-route", (e) => {
-            completedRoutes.features.push(e.detail);
-            map.getSource("finished-routes").setData(completedRoutes);
-          });
+        let snapTool = document.getElementById("snap-tool");
+        snapTool.addEventListener("new-route", (e) => {
+          completedRoutes.features.push(e.detail);
+          map.getSource("finished-routes").setData(completedRoutes);
+          document.getElementById("status").innerText = "Added new route";
+        });
+        snapTool.addEventListener("activate", (e) => {
+          document.getElementById("status").innerText = "Activated";
+        });
+        snapTool.addEventListener("no-new-route", (e) => {
+          document.getElementById("status").innerText =
+            "Inactive, no route last attempt";
+        });
 
         document.getElementById("clear").onclick = () => {
           completedRoutes.features = [];
