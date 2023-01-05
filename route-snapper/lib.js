@@ -145,6 +145,15 @@ export class RouteSnapper {
     return this.active;
   }
 
+  // Destroy resources attached to the map. Warning, this doesn't yet handle
+  // event listeners!
+  tearDown() {
+    this.map.removeLayer("route-points");
+    this.map.removeLayer("route-lines");
+    this.map.removeSource("route-snapper");
+    // TODO Remove the event listeners on document and map
+  }
+
   #inactiveControl() {
     this.active = false;
 
