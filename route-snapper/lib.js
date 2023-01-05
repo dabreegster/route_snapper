@@ -29,7 +29,14 @@ export class RouteSnapper {
         type: "circle",
         source: "route-snapper",
         paint: {
-          "circle-radius": circleRadiusPixels,
+          "circle-radius": [
+            "match",
+            ["get", "type"],
+            "unimportant",
+            circleRadiusPixels / 2.0,
+            // other
+            circleRadiusPixels,
+          ],
           "circle-color": [
             "match",
             ["get", "type"],
@@ -40,24 +47,6 @@ export class RouteSnapper {
             // other
             "black",
           ],
-          // Draw unimportant (draggable, but not waypoints) circles with no fill, but an outline
-          "circle-opacity": [
-            "match",
-            ["get", "type"],
-            "unimportant",
-            0.0,
-            // other
-            1.0,
-          ],
-          "circle-stroke-width": [
-            "match",
-            ["get", "type"],
-            "unimportant",
-            2.0,
-            // other
-            0.0,
-          ],
-          "circle-stroke-color": "black",
         },
         filter: ["in", "$type", "Point"],
       });

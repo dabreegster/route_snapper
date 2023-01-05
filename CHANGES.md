@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Improved styling for draggable points
+
 ## 0.1.2
 
 - fetchWithProgress takes an element, not ID, to work better with Svelte
