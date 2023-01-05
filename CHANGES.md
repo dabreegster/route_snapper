@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.3
+
 - Improved styling for draggable points
 - Start a `tearDown` method
 
