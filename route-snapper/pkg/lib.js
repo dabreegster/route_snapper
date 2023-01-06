@@ -5,6 +5,7 @@ export { init };
 export class RouteSnapper {
   constructor(map, graphBytes, controlDiv) {
     const circleRadiusPixels = 10;
+    const snapDistancePixels = 30;
 
     this.controlDiv = controlDiv;
     this.map = map;
@@ -69,7 +70,7 @@ export class RouteSnapper {
         if (!this.active) {
           return;
         }
-        const nearbyPoint = { x: e.point.x - circleRadiusPixels, y: e.point.y };
+        const nearbyPoint = { x: e.point.x - snapDistancePixels, y: e.point.y };
         const circleRadiusMeters = this.map
           .unproject(e.point)
           .distanceTo(this.map.unproject(nearbyPoint));
