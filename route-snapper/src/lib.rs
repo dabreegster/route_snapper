@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
-use geom::{Circle, Distance, FindClosest, HashablePt2D, LonLat, PolyLine, Pt2D};
+use geom::{Distance, HashablePt2D, LonLat, PolyLine, Pt2D};
 use petgraph::graphmap::DiGraphMap;
+use rstar::primitives::GeomWithData;
+use rstar::RTree;
 use wasm_bindgen::prelude::*;
 
 use route_snapper_graph::{EdgeID, NodeID, RouteSnapperMap};
-
-const NODE_RADIUS: Distance = Distance::const_meters(10.0);
 
 type Graph = DiGraphMap<NodeID, DirectedEdge>;
 
@@ -15,7 +15,7 @@ pub struct JsRouteSnapper {
     // TODO Blurring the line where state lives, all of this needs a re-work
     map: RouteSnapperMap,
     graph: Graph,
-    snap_to_nodes: FindClosest<NodeID>,
+    snap_to_nodes: RTree<GeomWithData<[f64; 2], NodeID>>,
     route: Route,
     mode: Mode,
     // Is the shift key not held?
@@ -107,15 +107,11 @@ impl JsRouteSnapper {
             graph.add_edge(e.node2, e.node1, DirectedEdge(id, BACKWARDS));
         }
 
-        let mut snap_to_nodes = FindClosest::new(&map.gps_bounds.to_bounds());
+        let mut nodes = Vec::new();
         for (idx, pt) in map.nodes.iter().enumerate() {
-            // TODO Time to rethink FindClosest. It can't handle a single point, it needs something
-            // with a real bbox
-            snap_to_nodes.add_polygon(
-                NodeID(idx as u32),
-                &Circle::new(*pt, NODE_RADIUS).to_polygon(),
-            );
+            nodes.push(GeomWithData::new([pt.x(), pt.y()], NodeID(idx as u32)));
         }
+        let snap_to_nodes = RTree::bulk_load(nodes);
 
         Ok(Self {
             map,
@@ -279,9 +275,7 @@ impl JsRouteSnapper {
             }
             Mode::Dragging { idx, at } => {
                 let new_waypt = match at {
-                    Waypoint::Snapped(_) => self
-                        .mouseover_node(pt, circle_radius)
-                        .map(Waypoint::Snapped),
+                    Waypoint::Snapped(_) => self.mouseover_node(pt).map(Waypoint::Snapped),
                     Waypoint::Free(_) => Some(Waypoint::Free(pt)),
                 };
                 if let Some(new_waypt) = new_waypt {
@@ -370,13 +364,13 @@ impl JsRouteSnapper {
             }
         }
 
-        let node = self.mouseover_node(pt, circle_radius)?;
+        let node = self.mouseover_node(pt)?;
         Some(Waypoint::Snapped(node))
     }
-    fn mouseover_node(&self, pt: Pt2D, circle_radius: Distance) -> Option<NodeID> {
-        // TODO I can't figure out how, but the hitbox detection is sometimes off.
-        let (node, _) = self.snap_to_nodes.closest_pt(pt, circle_radius)?;
-        Some(node)
+    fn mouseover_node(&self, pt: Pt2D) -> Option<NodeID> {
+        let pt = [pt.x(), pt.y()];
+        let node = self.snap_to_nodes.nearest_neighbor(&pt)?;
+        Some(node.data)
     }
 
     fn entire_line_string(&self) -> Option<geojson::Geometry> {
