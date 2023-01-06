@@ -24,7 +24,7 @@ pub struct JsRouteSnapper {
 
 // TODO It's impossible for a waypoint to be an Edge, but the code might be simpler if this and
 // PathEntry are merged
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 enum Waypoint {
     Snapped(NodeID),
     Free(Pt2D),
@@ -39,7 +39,7 @@ impl Waypoint {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 enum PathEntry {
     SnappedPoint(NodeID),
     FreePoint(Pt2D),
@@ -71,7 +71,7 @@ type Direction = bool;
 const FORWARDS: Direction = true;
 const BACKWARDS: Direction = false;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 struct DirectedEdge(EdgeID, Direction);
 
 #[derive(Clone, PartialEq)]
@@ -374,10 +374,15 @@ impl JsRouteSnapper {
         }
         let mut pts = Vec::new();
 
+        //web_sys::console::log_1(&"full_path".into());
         for entry in &self.route.full_path {
+            //web_sys::console::log_1(&format!("    {:?}", entry).into());
             match entry {
-                // There'll be an adjacent Edge that contributes geometry
-                PathEntry::SnappedPoint(_) => {}
+                PathEntry::SnappedPoint(node) => {
+                    // There may be an adjacent Edge that contributes geometry, but maybe not near
+                    // free points. We'll dedupe later anyway.
+                    pts.push(self.map.node(*node));
+                }
                 PathEntry::FreePoint(pt) => {
                     pts.push(*pt);
                 }
@@ -482,7 +487,10 @@ impl Route {
     // back entirely
     fn recalculate_full_path(&mut self, map: &RouteSnapperMap, graph: &Graph) -> bool {
         self.full_path.clear();
+
+        //web_sys::console::log_1(&"waypoints".into());
         for pair in self.waypoints.windows(2) {
+            //web_sys::console::log_1(&format!("    {:?}", pair[0]).into());
             if let Waypoint::Free(pt) = pair[0] {
                 self.full_path.push(PathEntry::FreePoint(pt));
             }
@@ -493,6 +501,11 @@ impl Route {
                 } else {
                     return false;
                 }
+            }
+
+            if let [Waypoint::Snapped(node1), Waypoint::Free(_)] = pair {
+                // This would otherwise not be included
+                self.full_path.push(PathEntry::SnappedPoint(*node1));
             }
         }
         if let Some(Waypoint::Free(pt)) = self.waypoints.last() {
