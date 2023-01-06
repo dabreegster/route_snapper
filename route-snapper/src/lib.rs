@@ -169,26 +169,37 @@ impl JsRouteSnapper {
         if let Mode::Hovering(hover) = self.mode {
             draw_circles.insert(self.to_pt(hover), "hovered");
 
-            if let (Some(Waypoint::Snapped(last)), Waypoint::Snapped(current)) =
-                (self.route.waypoints.last(), hover)
-            {
+            if let (Some(last), Waypoint::Snapped(current)) = (self.route.waypoints.last(), hover) {
                 // If we're trying to drag a point, don't show this preview
                 if !self
                     .route
                     .full_path
                     .contains(&PathEntry::SnappedPoint(current))
                 {
-                    if let Some(entries) = pathfind(&self.map, &self.graph, *last, current) {
-                        for entry in entries {
-                            // Just preview the lines, not the circles
-                            if let PathEntry::Edge(dir_edge) = entry {
-                                let pl =
-                                    PolyLine::unchecked_new(edge_geometry(&self.map, dir_edge));
-                                result.push((
-                                    pl.to_geojson(Some(&self.map.gps_bounds)),
-                                    serde_json::Map::new(),
-                                ));
+                    match last {
+                        Waypoint::Snapped(last) => {
+                            if let Some(entries) = pathfind(&self.map, &self.graph, *last, current)
+                            {
+                                for entry in entries {
+                                    // Just preview the lines, not the circles
+                                    if let PathEntry::Edge(dir_edge) = entry {
+                                        let pl = PolyLine::unchecked_new(edge_geometry(
+                                            &self.map, dir_edge,
+                                        ));
+                                        result.push((
+                                            pl.to_geojson(Some(&self.map.gps_bounds)),
+                                            serde_json::Map::new(),
+                                        ));
+                                    }
+                                }
                             }
+                        }
+                        Waypoint::Free(pt) => {
+                            let pl = PolyLine::unchecked_new(vec![*pt, self.map.node(current)]);
+                            result.push((
+                                pl.to_geojson(Some(&self.map.gps_bounds)),
+                                serde_json::Map::new(),
+                            ));
                         }
                     }
                 }
@@ -374,9 +385,7 @@ impl JsRouteSnapper {
         }
         let mut pts = Vec::new();
 
-        //web_sys::console::log_1(&"full_path".into());
         for entry in &self.route.full_path {
-            //web_sys::console::log_1(&format!("    {:?}", entry).into());
             match entry {
                 PathEntry::SnappedPoint(node) => {
                     // There may be an adjacent Edge that contributes geometry, but maybe not near
@@ -488,29 +497,28 @@ impl Route {
     fn recalculate_full_path(&mut self, map: &RouteSnapperMap, graph: &Graph) -> bool {
         self.full_path.clear();
 
-        //web_sys::console::log_1(&"waypoints".into());
         for pair in self.waypoints.windows(2) {
-            //web_sys::console::log_1(&format!("    {:?}", pair[0]).into());
-            if let Waypoint::Free(pt) = pair[0] {
-                self.full_path.push(PathEntry::FreePoint(pt));
-            }
+            // Always add every waypoint
+            self.full_path.push(pair[0].to_path_entry());
 
             if let [Waypoint::Snapped(node1), Waypoint::Snapped(node2)] = pair {
                 if let Some(entries) = pathfind(map, graph, *node1, *node2) {
+                    // Don't repeat that snapped point
+                    assert_eq!(self.full_path.pop(), Some(PathEntry::SnappedPoint(*node1)));
                     self.full_path.extend(entries);
                 } else {
                     return false;
                 }
             }
-
-            if let [Waypoint::Snapped(node1), Waypoint::Free(_)] = pair {
-                // This would otherwise not be included
-                self.full_path.push(PathEntry::SnappedPoint(*node1));
+        }
+        // Always add the last if it's different
+        if let Some(last) = self.waypoints.last() {
+            let add = last.to_path_entry();
+            if self.full_path.last() != Some(&add) {
+                self.full_path.push(add);
             }
         }
-        if let Some(Waypoint::Free(pt)) = self.waypoints.last() {
-            self.full_path.push(PathEntry::FreePoint(*pt));
-        }
+
         true
     }
 }
