@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.4
+
+- Fix missing lines when switching between freehand and snapped points
+- Fix bugs snapping to wrong point when many are clustered together
+- Always snap to the nearest point, no matter how far it is
+
 ## 0.1.3
 
 - Improved styling for draggable points
