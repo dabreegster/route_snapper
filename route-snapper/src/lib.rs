@@ -188,6 +188,16 @@ impl JsRouteSnapper {
                                         ));
                                     }
                                 }
+                            } else {
+                                // It'll be a straight line
+                                let pl = PolyLine::unchecked_new(vec![
+                                    self.map.node(*last),
+                                    self.map.node(current),
+                                ]);
+                                result.push((
+                                    pl.to_geojson(Some(&self.map.gps_bounds)),
+                                    serde_json::Map::new(),
+                                ));
                             }
                         }
                         Waypoint::Free(pt) => {
@@ -427,10 +437,7 @@ impl Route {
             // TODO Do we need to have the one PathEntry?
         } else {
             self.waypoints.push(waypt);
-            let orig = self.clone();
-            if !self.recalculate_full_path(map, graph) {
-                *self = orig;
-            }
+            self.recalculate_full_path(map, graph);
         }
     }
 
@@ -452,8 +459,6 @@ impl Route {
             return 0;
         }
 
-        let orig = self.clone();
-
         // Move an existing waypoint?
         if let Some(way_idx) = self.waypoints.iter().position(|x| *x == old_waypt) {
             self.waypoints[way_idx] = new_waypt;
@@ -472,11 +477,7 @@ impl Route {
             }
         }
 
-        if !self.recalculate_full_path(map, graph) {
-            // Moving the waypoint broke the path, just revert.
-            *self = orig;
-            return full_idx;
-        }
+        self.recalculate_full_path(map, graph);
         self.full_path
             .iter()
             .position(|x| x.to_waypt() == Some(new_waypt))
@@ -485,10 +486,7 @@ impl Route {
 
     // It might be possible for callers to recalculate something smaller, but it's not worth the
     // complexity
-    //
-    // Returns true on success. If false, the Route is in an invalid state and should be rolled
-    // back entirely
-    fn recalculate_full_path(&mut self, map: &RouteSnapperMap, graph: &Graph) -> bool {
+    fn recalculate_full_path(&mut self, map: &RouteSnapperMap, graph: &Graph) {
         self.full_path.clear();
 
         for pair in self.waypoints.windows(2) {
@@ -500,9 +498,10 @@ impl Route {
                     // Don't repeat that snapped point
                     assert_eq!(self.full_path.pop(), Some(PathEntry::SnappedPoint(*node1)));
                     self.full_path.extend(entries);
-                } else {
-                    return false;
                 }
+                // If the points are disconnected in the graph, just act like there's a freehand
+                // line between them. It's better than breaking.
+                // (We don't need to do anything here -- the other point will get added)
             }
         }
         // Always add the last if it's different
@@ -512,8 +511,6 @@ impl Route {
                 self.full_path.push(add);
             }
         }
-
-        true
     }
 }
 
