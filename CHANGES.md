@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.5
+
+- If the graph is disconnected, draw straight lines between points instead of breaking
+
 ## 0.1.4
 
 - Fix missing lines when switching between freehand and snapped points

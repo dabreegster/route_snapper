@@ -487,7 +487,7 @@ checksum = "e5864e7ef1a6b7bcf1d6ca3f655e65e724ed3b52546a0d0a663c991522f552ea"
 
 [[package]]
 name = "route-snapper"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "bincode",
  "console_error_panic_hook",
