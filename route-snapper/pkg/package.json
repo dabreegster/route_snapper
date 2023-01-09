@@ -1,7 +1,7 @@
 {
   "name": "route-snapper",
   "description": "Draw routes in MapLibre snapped to a street network using client-side routing",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
