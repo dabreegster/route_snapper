@@ -12,6 +12,8 @@ file from OpenStreetMap data using
 `.osm.xml` file, and optionally a GeoJSON file with one polygon representing
 the boundary of your area.
 
+You'll need to [install Rust](https://www.rust-lang.org/tools/install) to run this:
+
 ```
 cd osm-to-route-snapper
 cargo run --release \
@@ -44,11 +46,15 @@ import {
 
 ### Setup
 
-First you need to get the raw graph file you built. You can do this however you like, such as using [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch). For convenience, the JS library includes a helper function `fetchWithProgress` that draws a progress bar to a `div` element you pass in.
+To initialize the WASM library, you have to `await init()`.
+
+You'll need to get the raw graph file you built. You can do this however you like, such as using [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch). For convenience, the JS library includes a helper function `fetchWithProgress` that draws a progress bar to a `div` element you pass in.
 
 To create the route snapper, you need a MapLibre map (it can be initialized or not), the graph, and a `div` element for the plugin to render its controls. From the [example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.html), it might look like this:
 
 ```
+await init();
+
 const graphBytes = await fetchWithProgress(
   url,
   document.getElementById("snap-progress")
