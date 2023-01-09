@@ -1,4 +1,4 @@
-# User guide
+# route-snapper user guide
 
 ## Building a graph file
 

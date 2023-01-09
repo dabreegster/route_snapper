@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.6
+
+- Added README to NPM package
+
 ## 0.1.5
 
 - If the graph is disconnected, draw straight lines between points instead of breaking
