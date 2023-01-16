@@ -113,7 +113,9 @@ export class RouteSnapper {
         }
         if (e.key == "Enter") {
           e.preventDefault();
-          this.#finishSnapping();
+          //this.#finishSnapping();
+          this.inner.closeOffArea();
+          this.#redraw();
         }
       });
 

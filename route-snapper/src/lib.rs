@@ -166,11 +166,12 @@ impl JsRouteSnapper {
             draw_circles.insert(self.to_pt(hover), "hovered");
 
             if let (Some(last), Waypoint::Snapped(current)) = (self.route.waypoints.last(), hover) {
-                // If we're trying to drag a point, don't show this preview
-                if !self
-                    .route
-                    .full_path
-                    .contains(&PathEntry::SnappedPoint(current))
+                // If we're trying to drag a point or it's a closed area, don't show this preview
+                if !self.route.is_area()
+                    && !self
+                        .route
+                        .full_path
+                        .contains(&PathEntry::SnappedPoint(current))
                 {
                     match last {
                         Waypoint::Snapped(last) => {
@@ -320,8 +321,7 @@ impl JsRouteSnapper {
                     && idx != 0
                     && idx != self.route.waypoints.len() - 1
                 {
-                    self.route.waypoints.remove(idx);
-                    self.route.recalculate_full_path(&self.map, &self.graph);
+                    self.route.remove_waypoint(&self.map, &self.graph, idx);
                 }
             } else {
                 self.route.add_waypoint(&self.map, &self.graph, hover);
@@ -361,6 +361,15 @@ impl JsRouteSnapper {
         self.route = Route::new();
         self.mode = Mode::Neutral;
     }
+
+    #[wasm_bindgen(js_name = closeOffArea)]
+    pub fn close_off_area(&mut self) {
+        if self.route.is_area() || self.route.waypoints.len() < 2 {
+            return;
+        }
+        self.route
+            .add_waypoint(&self.map, &self.graph, self.route.waypoints[0]);
+    }
 }
 
 impl JsRouteSnapper {
@@ -375,6 +384,17 @@ impl JsRouteSnapper {
         }
 
         let node = self.mouseover_node(pt)?;
+
+        // If we've closed off an area, don't snap to other nodes
+        if self.route.is_area()
+            && !self
+                .route
+                .full_path
+                .contains(&PathEntry::SnappedPoint(node))
+        {
+            return None;
+        }
+
         Some(Waypoint::Snapped(node))
     }
     fn mouseover_node(&self, pt: Pt2D) -> Option<NodeID> {
@@ -461,7 +481,12 @@ impl Route {
 
         // Move an existing waypoint?
         if let Some(way_idx) = self.waypoints.iter().position(|x| *x == old_waypt) {
-            self.waypoints[way_idx] = new_waypt;
+            if self.is_area() && way_idx == 0 {
+                self.waypoints[0] = new_waypt;
+                *self.waypoints.last_mut().unwrap() = new_waypt;
+            } else {
+                self.waypoints[way_idx] = new_waypt;
+            }
         } else {
             // Find the next waypoint after this one
             for entry in &self.full_path[full_idx..] {
@@ -482,6 +507,12 @@ impl Route {
             .iter()
             .position(|x| x.to_waypt() == Some(new_waypt))
             .unwrap()
+    }
+
+    fn remove_waypoint(&mut self, map: &RouteSnapperMap, graph: &Graph, idx: usize) {
+        // TODO If it's an area, what do?
+        self.waypoints.remove(idx);
+        self.recalculate_full_path(map, graph);
     }
 
     // It might be possible for callers to recalculate something smaller, but it's not worth the
@@ -511,6 +542,10 @@ impl Route {
                 self.full_path.push(add);
             }
         }
+    }
+
+    fn is_area(&self) -> bool {
+        self.waypoints.len() >= 2 && self.waypoints[0] == *self.waypoints.last().unwrap()
     }
 }
 
