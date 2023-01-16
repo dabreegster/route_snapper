@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use geom::{Distance, HashablePt2D, LonLat, PolyLine, Pt2D};
 use petgraph::graphmap::DiGraphMap;
@@ -174,8 +174,13 @@ impl JsRouteSnapper {
                 {
                     match last {
                         Waypoint::Snapped(last) => {
-                            if let Some(entries) = pathfind(&self.map, &self.graph, *last, current)
-                            {
+                            if let Some(entries) = pathfind(
+                                &self.map,
+                                &self.graph,
+                                *last,
+                                current,
+                                &self.route.full_path,
+                            ) {
                                 for entry in entries {
                                     // Just preview the lines, not the circles
                                     if let PathEntry::Edge(dir_edge) = entry {
@@ -494,7 +499,7 @@ impl Route {
             self.full_path.push(pair[0].to_path_entry());
 
             if let [Waypoint::Snapped(node1), Waypoint::Snapped(node2)] = pair {
-                if let Some(entries) = pathfind(map, graph, *node1, *node2) {
+                if let Some(entries) = pathfind(map, graph, *node1, *node2, &self.full_path) {
                     // Don't repeat that snapped point
                     assert_eq!(self.full_path.pop(), Some(PathEntry::SnappedPoint(*node1)));
                     self.full_path.extend(entries);
@@ -520,14 +525,32 @@ fn pathfind(
     graph: &Graph,
     node1: NodeID,
     node2: NodeID,
+    prev_path: &Vec<PathEntry>,
 ) -> Option<Vec<PathEntry>> {
+    // Penalize visiting edges we've been to before, so that waypoints don't cause us to double
+    // back
+    // TODO Seems fast enough, but we could cache and build this up incrementally
+    let mut avoid = HashSet::new();
+    for entry in prev_path {
+        if let PathEntry::Edge(e) = entry {
+            avoid.insert(e.0);
+        }
+    }
+
     let node2_pt = map.node(node2);
 
     let (_, path) = petgraph::algo::astar(
         graph,
         node1,
         |i| i == node2,
-        |(_, _, dir_edge)| map.edge(dir_edge.0).length,
+        |(_, _, dir_edge)| {
+            let penalty = if avoid.contains(&dir_edge.0) {
+                2.0
+            } else {
+                1.0
+            };
+            penalty * map.edge(dir_edge.0).length
+        },
         |i| map.node(i).dist_to(node2_pt),
     )?;
 
