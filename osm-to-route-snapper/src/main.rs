@@ -51,7 +51,7 @@ fn streets_to_snapper(streets: &osm2streets::StreetNetwork) -> RouteSnapperMap {
 
     let mut id_lookup = HashMap::new();
     for i in streets.intersections.values() {
-        map.nodes.push(i.point);
+        map.nodes.push(i.polygon.center());
         id_lookup.insert(i.id, NodeID(id_lookup.len() as u32));
     }
     for r in streets.roads.values() {
