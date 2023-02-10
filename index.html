@@ -126,7 +126,9 @@
         snapTool.addEventListener("new-route", (e) => {
           completedRoutes.features.push(e.detail);
           map.getSource("finished-routes").setData(completedRoutes);
-          document.getElementById("status").innerText = "Added new route";
+          document.getElementById(
+            "status"
+          ).innerText = `Added new route of length ${e.detail.properties.length_meters} meters`;
         });
         snapTool.addEventListener("activate", (e) => {
           document.getElementById("status").innerText = "Activated";

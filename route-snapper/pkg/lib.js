@@ -189,7 +189,7 @@ export class RouteSnapper {
     avoidDoublingBack.id = "avoidDoublingBack";
     avoidDoublingBack.onclick = () => {
       this.inner.setConfig({
-        avoid_doubling_back: avoidDoublingBack.checked
+        avoid_doubling_back: avoidDoublingBack.checked,
       });
       this.#redraw();
     };
