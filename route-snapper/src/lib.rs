@@ -19,6 +19,7 @@ pub struct JsRouteSnapper {
     mode: Mode,
     // Is the shift key not held?
     snap_mode: bool,
+    mouse_onscreen: bool,
 }
 
 #[derive(Default, Deserialize)]
@@ -134,6 +135,7 @@ impl JsRouteSnapper {
             route: Route::new(),
             mode: Mode::Neutral,
             snap_mode: true,
+            mouse_onscreen: true,
         })
     }
 
@@ -189,39 +191,53 @@ impl JsRouteSnapper {
             draw_circles.insert(self.to_pt(*waypt), "important");
         }
 
-        // Draw the current operation
-        if let Mode::Hovering(hover) = self.mode {
-            draw_circles.insert(self.to_pt(hover), "hovered");
+        if self.mouse_onscreen {
+            // Draw the current operation
+            if let Mode::Hovering(hover) = self.mode {
+                draw_circles.insert(self.to_pt(hover), "hovered");
 
-            if let (Some(last), Waypoint::Snapped(current)) = (self.route.waypoints.last(), hover) {
-                // If we're trying to drag a point, don't show this preview
-                if !self
-                    .route
-                    .full_path
-                    .contains(&PathEntry::SnappedPoint(current))
+                if let (Some(last), Waypoint::Snapped(current)) =
+                    (self.route.waypoints.last(), hover)
                 {
-                    match last {
-                        Waypoint::Snapped(last) => {
-                            if let Some(entries) =
-                                self.router.pathfind(*last, current, &self.route.full_path)
-                            {
-                                for entry in entries {
-                                    // Just preview the lines, not the circles
-                                    if let PathEntry::Edge(dir_edge) = entry {
-                                        let pl = PolyLine::unchecked_new(edge_geometry(
-                                            &self.router.map,
-                                            dir_edge,
-                                        ));
-                                        result.push((
-                                            pl.to_geojson(Some(&self.router.map.gps_bounds)),
-                                            serde_json::Map::new(),
-                                        ));
+                    // If we're trying to drag a point, don't show this preview
+                    if !self
+                        .route
+                        .full_path
+                        .contains(&PathEntry::SnappedPoint(current))
+                    {
+                        match last {
+                            Waypoint::Snapped(last) => {
+                                if let Some(entries) =
+                                    self.router.pathfind(*last, current, &self.route.full_path)
+                                {
+                                    for entry in entries {
+                                        // Just preview the lines, not the circles
+                                        if let PathEntry::Edge(dir_edge) = entry {
+                                            let pl = PolyLine::unchecked_new(edge_geometry(
+                                                &self.router.map,
+                                                dir_edge,
+                                            ));
+                                            result.push((
+                                                pl.to_geojson(Some(&self.router.map.gps_bounds)),
+                                                serde_json::Map::new(),
+                                            ));
+                                        }
                                     }
+                                } else {
+                                    // It'll be a straight line
+                                    let pl = PolyLine::unchecked_new(vec![
+                                        self.router.map.node(*last),
+                                        self.router.map.node(current),
+                                    ]);
+                                    result.push((
+                                        pl.to_geojson(Some(&self.router.map.gps_bounds)),
+                                        serde_json::Map::new(),
+                                    ));
                                 }
-                            } else {
-                                // It'll be a straight line
+                            }
+                            Waypoint::Free(pt) => {
                                 let pl = PolyLine::unchecked_new(vec![
-                                    self.router.map.node(*last),
+                                    *pt,
                                     self.router.map.node(current),
                                 ]);
                                 result.push((
@@ -230,34 +246,26 @@ impl JsRouteSnapper {
                                 ));
                             }
                         }
-                        Waypoint::Free(pt) => {
-                            let pl =
-                                PolyLine::unchecked_new(vec![*pt, self.router.map.node(current)]);
-                            result.push((
-                                pl.to_geojson(Some(&self.router.map.gps_bounds)),
-                                serde_json::Map::new(),
-                            ));
-                        }
                     }
                 }
             }
-        }
-        if let Mode::Dragging { at, .. } = self.mode {
-            draw_circles.insert(self.to_pt(at), "hovered");
-        }
-        if let Mode::Freehand(pt) = self.mode {
-            draw_circles.insert(pt.to_hashable(), "hovered");
+            if let Mode::Dragging { at, .. } = self.mode {
+                draw_circles.insert(self.to_pt(at), "hovered");
+            }
+            if let Mode::Freehand(pt) = self.mode {
+                draw_circles.insert(pt.to_hashable(), "hovered");
 
-            if let Some(last) = self.route.waypoints.last() {
-                let last_pt = match *last {
-                    Waypoint::Snapped(node) => self.router.map.node(node),
-                    Waypoint::Free(pt) => pt,
-                };
-                let pl = PolyLine::unchecked_new(vec![last_pt, pt]);
-                result.push((
-                    pl.to_geojson(Some(&self.router.map.gps_bounds)),
-                    serde_json::Map::new(),
-                ));
+                if let Some(last) = self.route.waypoints.last() {
+                    let last_pt = match *last {
+                        Waypoint::Snapped(node) => self.router.map.node(node),
+                        Waypoint::Free(pt) => pt,
+                    };
+                    let pl = PolyLine::unchecked_new(vec![last_pt, pt]);
+                    result.push((
+                        pl.to_geojson(Some(&self.router.map.gps_bounds)),
+                        serde_json::Map::new(),
+                    ));
+                }
             }
         }
 
@@ -293,6 +301,7 @@ impl JsRouteSnapper {
     // True if something has changed
     #[wasm_bindgen(js_name = onMouseMove)]
     pub fn on_mouse_move(&mut self, lon: f64, lat: f64, circle_radius_meters: f64) -> bool {
+        self.mouse_onscreen = true;
         let pt = LonLat::new(lon, lat).to_pt(&self.router.map.gps_bounds);
         let circle_radius = Distance::meters(circle_radius_meters);
 
@@ -336,6 +345,11 @@ impl JsRouteSnapper {
         }
 
         false
+    }
+
+    #[wasm_bindgen(js_name = onMouseLeave)]
+    pub fn on_mouse_leave(&mut self) {
+        self.mouse_onscreen = false;
     }
 
     #[wasm_bindgen(js_name = onClick)]

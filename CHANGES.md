@@ -4,6 +4,7 @@
 
 - Add a `setConfig` method
 - Add optional behavior to avoid a route doubling back on itself
+- Don't show route preview when the cursor is off-map
 
 ## 0.1.6
 

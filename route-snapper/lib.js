@@ -81,6 +81,16 @@ export class RouteSnapper {
         }
       });
 
+      // TODO Not firing at the right times
+      this.map.on("mouseleave", "route-points", (e) => {
+        console.log("mouse leave!");
+        if (!this.active) {
+          return;
+        }
+        this.inner.onMouseLeave();
+        this.#redraw();
+      });
+
       this.map.on("click", () => {
         if (!this.active) {
           return;
