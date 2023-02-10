@@ -4,6 +4,7 @@ use geom::{Distance, HashablePt2D, LonLat, PolyLine, Pt2D};
 use petgraph::graphmap::DiGraphMap;
 use rstar::primitives::GeomWithData;
 use rstar::RTree;
+use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
 use route_snapper_graph::{EdgeID, NodeID, RouteSnapperMap};
@@ -20,10 +21,16 @@ pub struct JsRouteSnapper {
     snap_mode: bool,
 }
 
+#[derive(Default, Deserialize)]
+struct Config {
+    avoid_doubling_back: bool,
+}
+
 struct Router {
     // TODO Blurring the line where state lives, all of this needs a re-work
     map: RouteSnapperMap,
     graph: Graph,
+    config: Config,
 }
 
 // TODO It's impossible for a waypoint to be an Edge, but the code might be simpler if this and
@@ -118,12 +125,30 @@ impl JsRouteSnapper {
         let snap_to_nodes = RTree::bulk_load(nodes);
 
         Ok(Self {
-            router: Router { map, graph },
+            router: Router {
+                map,
+                graph,
+                config: Config::default(),
+            },
             snap_to_nodes,
             route: Route::new(),
             mode: Mode::Neutral,
             snap_mode: true,
         })
+    }
+
+    /// Updates configuration and recalculates paths. The caller should redraw.
+    #[wasm_bindgen(js_name = setConfig)]
+    pub fn set_config(&mut self, input: JsValue) {
+        match serde_wasm_bindgen::from_value(input) {
+            Ok(config) => {
+                self.router.config = config;
+                self.route.recalculate_full_path(&self.router);
+            }
+            Err(err) => {
+                web_sys::console::log_1(&format!("Bad input to setConfig: {}", err).into());
+            }
+        }
     }
 
     #[wasm_bindgen(js_name = toFinalFeature)]
@@ -526,9 +551,11 @@ impl Router {
         // back
         // TODO Seems fast enough, but we could cache and build this up incrementally
         let mut avoid = HashSet::new();
-        for entry in prev_path {
-            if let PathEntry::Edge(e) = entry {
-                avoid.insert(e.0);
+        if self.config.avoid_doubling_back {
+            for entry in prev_path {
+                if let PathEntry::Edge(e) = entry {
+                    avoid.insert(e.0);
+                }
             }
         }
 

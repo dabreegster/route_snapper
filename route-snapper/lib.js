@@ -162,7 +162,7 @@ export class RouteSnapper {
     this.#redraw();
 
     this.controlDiv.innerHTML = "";
-    var btn = document.createElement("button");
+    let btn = document.createElement("button");
     btn.innerText = "Route tool";
     btn.type = "button";
     btn.onclick = () => {
@@ -176,13 +176,32 @@ export class RouteSnapper {
     this.controlDiv.dispatchEvent(new CustomEvent("activate"));
 
     this.controlDiv.innerHTML = "";
-    var btn = document.createElement("button");
+    let btn = document.createElement("button");
     btn.type = "button";
     btn.innerText = "Finish route";
     btn.onclick = () => {
       this.#finishSnapping();
     };
     this.controlDiv.appendChild(btn);
+
+    let avoidDoublingBack = document.createElement("input");
+    avoidDoublingBack.type = "checkbox";
+    avoidDoublingBack.id = "avoidDoublingBack";
+    avoidDoublingBack.onclick = () => {
+      this.inner.setConfig({
+        avoid_doubling_back: avoidDoublingBack.checked
+      });
+      this.#redraw();
+    };
+
+    let avoidDoublingBackLabel = document.createElement("label");
+    avoidDoublingBackLabel.innerText = "Avoid doubling back";
+    avoidDoublingBackLabel.for = avoidDoublingBack.id;
+
+    let checkboxDiv = document.createElement("div");
+    checkboxDiv.appendChild(avoidDoublingBack);
+    checkboxDiv.appendChild(avoidDoublingBackLabel);
+    this.controlDiv.append(checkboxDiv);
 
     const instructions = document.createElement("ul");
     instructions.innerHTML =
