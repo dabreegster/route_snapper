@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add a `setConfig` method
+- Add optional behavior to avoid a route doubling back on itself
+
 ## 0.1.6
 
 - Added README to NPM package
