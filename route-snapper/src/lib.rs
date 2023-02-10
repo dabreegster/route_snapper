@@ -153,14 +153,15 @@ impl JsRouteSnapper {
 
     #[wasm_bindgen(js_name = toFinalFeature)]
     pub fn to_final_feature(&self) -> Option<String> {
-        let geometry = self.entire_line_string()?;
-        let feature = geojson::Feature {
+        let pl = self.entire_line_string()?;
+        let mut feature = geojson::Feature {
             bbox: None,
-            geometry: Some(geometry),
+            geometry: Some(pl.to_geojson(Some(&self.router.map.gps_bounds))),
             id: None,
             properties: None,
             foreign_members: None,
         };
+        feature.set_property("length_meters", pl.length().inner_meters());
         Some(serde_json::to_string_pretty(&feature).unwrap())
     }
 
@@ -176,7 +177,8 @@ impl JsRouteSnapper {
         let mut draw_circles = BTreeMap::new();
 
         // Draw the confirmed route
-        if let Some(geometry) = self.entire_line_string() {
+        if let Some(pl) = self.entire_line_string() {
+            let geometry = pl.to_geojson(Some(&self.router.map.gps_bounds));
             result.push((geometry, serde_json::Map::new()));
         }
         for entry in &self.route.full_path {
@@ -414,7 +416,7 @@ impl JsRouteSnapper {
         Some(node.data)
     }
 
-    fn entire_line_string(&self) -> Option<geojson::Geometry> {
+    fn entire_line_string(&self) -> Option<PolyLine> {
         if self.route.full_path.is_empty() {
             return None;
         }
@@ -440,8 +442,7 @@ impl JsRouteSnapper {
         if pts.len() < 2 {
             return None;
         }
-        let pl = PolyLine::unchecked_new(pts);
-        Some(pl.to_geojson(Some(&self.router.map.gps_bounds)))
+        Some(PolyLine::unchecked_new(pts))
     }
 
     fn to_pt(&self, waypt: Waypoint) -> HashablePt2D {
