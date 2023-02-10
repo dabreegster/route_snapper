@@ -12,14 +12,18 @@ type Graph = DiGraphMap<NodeID, DirectedEdge>;
 
 #[wasm_bindgen]
 pub struct JsRouteSnapper {
-    // TODO Blurring the line where state lives, all of this needs a re-work
-    map: RouteSnapperMap,
-    graph: Graph,
+    router: Router,
     snap_to_nodes: RTree<GeomWithData<[f64; 2], NodeID>>,
     route: Route,
     mode: Mode,
     // Is the shift key not held?
     snap_mode: bool,
+}
+
+struct Router {
+    // TODO Blurring the line where state lives, all of this needs a re-work
+    map: RouteSnapperMap,
+    graph: Graph,
 }
 
 // TODO It's impossible for a waypoint to be an Edge, but the code might be simpler if this and
@@ -114,8 +118,7 @@ impl JsRouteSnapper {
         let snap_to_nodes = RTree::bulk_load(nodes);
 
         Ok(Self {
-            map,
-            graph,
+            router: Router { map, graph },
             snap_to_nodes,
             route: Route::new(),
             mode: Mode::Neutral,
@@ -154,7 +157,7 @@ impl JsRouteSnapper {
         for entry in &self.route.full_path {
             // Every free point is a waypoint, so just handle it below
             if let PathEntry::SnappedPoint(node) = entry {
-                draw_circles.insert(self.map.node(*node).to_hashable(), "unimportant");
+                draw_circles.insert(self.router.map.node(*node).to_hashable(), "unimportant");
             }
         }
         for waypt in &self.route.waypoints {
@@ -174,21 +177,18 @@ impl JsRouteSnapper {
                 {
                     match last {
                         Waypoint::Snapped(last) => {
-                            if let Some(entries) = pathfind(
-                                &self.map,
-                                &self.graph,
-                                *last,
-                                current,
-                                &self.route.full_path,
-                            ) {
+                            if let Some(entries) =
+                                self.router.pathfind(*last, current, &self.route.full_path)
+                            {
                                 for entry in entries {
                                     // Just preview the lines, not the circles
                                     if let PathEntry::Edge(dir_edge) = entry {
                                         let pl = PolyLine::unchecked_new(edge_geometry(
-                                            &self.map, dir_edge,
+                                            &self.router.map,
+                                            dir_edge,
                                         ));
                                         result.push((
-                                            pl.to_geojson(Some(&self.map.gps_bounds)),
+                                            pl.to_geojson(Some(&self.router.map.gps_bounds)),
                                             serde_json::Map::new(),
                                         ));
                                     }
@@ -196,19 +196,20 @@ impl JsRouteSnapper {
                             } else {
                                 // It'll be a straight line
                                 let pl = PolyLine::unchecked_new(vec![
-                                    self.map.node(*last),
-                                    self.map.node(current),
+                                    self.router.map.node(*last),
+                                    self.router.map.node(current),
                                 ]);
                                 result.push((
-                                    pl.to_geojson(Some(&self.map.gps_bounds)),
+                                    pl.to_geojson(Some(&self.router.map.gps_bounds)),
                                     serde_json::Map::new(),
                                 ));
                             }
                         }
                         Waypoint::Free(pt) => {
-                            let pl = PolyLine::unchecked_new(vec![*pt, self.map.node(current)]);
+                            let pl =
+                                PolyLine::unchecked_new(vec![*pt, self.router.map.node(current)]);
                             result.push((
-                                pl.to_geojson(Some(&self.map.gps_bounds)),
+                                pl.to_geojson(Some(&self.router.map.gps_bounds)),
                                 serde_json::Map::new(),
                             ));
                         }
@@ -224,12 +225,12 @@ impl JsRouteSnapper {
 
             if let Some(last) = self.route.waypoints.last() {
                 let last_pt = match *last {
-                    Waypoint::Snapped(node) => self.map.node(node),
+                    Waypoint::Snapped(node) => self.router.map.node(node),
                     Waypoint::Free(pt) => pt,
                 };
                 let pl = PolyLine::unchecked_new(vec![last_pt, pt]);
                 result.push((
-                    pl.to_geojson(Some(&self.map.gps_bounds)),
+                    pl.to_geojson(Some(&self.router.map.gps_bounds)),
                     serde_json::Map::new(),
                 ));
             }
@@ -249,7 +250,10 @@ impl JsRouteSnapper {
         for (pt, label) in draw_circles {
             let mut props = serde_json::Map::new();
             props.insert("type".to_string(), label.to_string().into());
-            result.push((pt.to_pt2d().to_geojson(Some(&self.map.gps_bounds)), props));
+            result.push((
+                pt.to_pt2d().to_geojson(Some(&self.router.map.gps_bounds)),
+                props,
+            ));
         }
 
         let obj = geom::geometries_with_properties_to_geojson(result);
@@ -264,7 +268,7 @@ impl JsRouteSnapper {
     // True if something has changed
     #[wasm_bindgen(js_name = onMouseMove)]
     pub fn on_mouse_move(&mut self, lon: f64, lat: f64, circle_radius_meters: f64) -> bool {
-        let pt = LonLat::new(lon, lat).to_pt(&self.map.gps_bounds);
+        let pt = LonLat::new(lon, lat).to_pt(&self.router.map.gps_bounds);
         let circle_radius = Distance::meters(circle_radius_meters);
 
         if !self.snap_mode && !matches!(self.mode, Mode::Dragging { .. }) {
@@ -295,9 +299,7 @@ impl JsRouteSnapper {
                 };
                 if let Some(new_waypt) = new_waypt {
                     if new_waypt != at {
-                        let new_idx =
-                            self.route
-                                .move_waypoint(&self.map, &self.graph, idx, new_waypt);
+                        let new_idx = self.route.move_waypoint(&self.router, idx, new_waypt);
                         self.mode = Mode::Dragging {
                             idx: new_idx,
                             at: new_waypt,
@@ -314,8 +316,7 @@ impl JsRouteSnapper {
     #[wasm_bindgen(js_name = onClick)]
     pub fn on_click(&mut self) {
         if let Mode::Freehand(pt) = self.mode {
-            self.route
-                .add_waypoint(&self.map, &self.graph, Waypoint::Free(pt));
+            self.route.add_waypoint(&self.router, Waypoint::Free(pt));
         }
 
         if let Mode::Hovering(hover) = self.mode {
@@ -326,10 +327,10 @@ impl JsRouteSnapper {
                     && idx != self.route.waypoints.len() - 1
                 {
                     self.route.waypoints.remove(idx);
-                    self.route.recalculate_full_path(&self.map, &self.graph);
+                    self.route.recalculate_full_path(&self.router);
                 }
             } else {
-                self.route.add_waypoint(&self.map, &self.graph, hover);
+                self.route.add_waypoint(&self.router, hover);
             }
         }
     }
@@ -399,13 +400,13 @@ impl JsRouteSnapper {
                 PathEntry::SnappedPoint(node) => {
                     // There may be an adjacent Edge that contributes geometry, but maybe not near
                     // free points. We'll dedupe later anyway.
-                    pts.push(self.map.node(*node));
+                    pts.push(self.router.map.node(*node));
                 }
                 PathEntry::FreePoint(pt) => {
                     pts.push(*pt);
                 }
                 PathEntry::Edge(dir_edge) => {
-                    pts.extend(edge_geometry(&self.map, *dir_edge));
+                    pts.extend(edge_geometry(&self.router.map, *dir_edge));
                 }
             }
         }
@@ -415,12 +416,12 @@ impl JsRouteSnapper {
             return None;
         }
         let pl = PolyLine::unchecked_new(pts);
-        Some(pl.to_geojson(Some(&self.map.gps_bounds)))
+        Some(pl.to_geojson(Some(&self.router.map.gps_bounds)))
     }
 
     fn to_pt(&self, waypt: Waypoint) -> HashablePt2D {
         match waypt {
-            Waypoint::Snapped(node) => self.map.node(node),
+            Waypoint::Snapped(node) => self.router.map.node(node),
             Waypoint::Free(pt) => pt,
         }
         .to_hashable()
@@ -435,25 +436,19 @@ impl Route {
         }
     }
 
-    fn add_waypoint(&mut self, map: &RouteSnapperMap, graph: &Graph, waypt: Waypoint) {
+    fn add_waypoint(&mut self, router: &Router, waypt: Waypoint) {
         if self.waypoints.is_empty() {
             self.waypoints.push(waypt);
             assert!(self.full_path.is_empty());
             // TODO Do we need to have the one PathEntry?
         } else {
             self.waypoints.push(waypt);
-            self.recalculate_full_path(map, graph);
+            self.recalculate_full_path(router);
         }
     }
 
     // Returns the new full_path index
-    fn move_waypoint(
-        &mut self,
-        map: &RouteSnapperMap,
-        graph: &Graph,
-        full_idx: usize,
-        new_waypt: Waypoint,
-    ) -> usize {
+    fn move_waypoint(&mut self, router: &Router, full_idx: usize, new_waypt: Waypoint) -> usize {
         let old_waypt = self.full_path[full_idx].to_waypt().unwrap();
 
         // Edge case when we've placed just one point, then try to drag it
@@ -482,7 +477,7 @@ impl Route {
             }
         }
 
-        self.recalculate_full_path(map, graph);
+        self.recalculate_full_path(router);
         self.full_path
             .iter()
             .position(|x| x.to_waypt() == Some(new_waypt))
@@ -491,7 +486,7 @@ impl Route {
 
     // It might be possible for callers to recalculate something smaller, but it's not worth the
     // complexity
-    fn recalculate_full_path(&mut self, map: &RouteSnapperMap, graph: &Graph) {
+    fn recalculate_full_path(&mut self, router: &Router) {
         self.full_path.clear();
 
         for pair in self.waypoints.windows(2) {
@@ -499,7 +494,7 @@ impl Route {
             self.full_path.push(pair[0].to_path_entry());
 
             if let [Waypoint::Snapped(node1), Waypoint::Snapped(node2)] = pair {
-                if let Some(entries) = pathfind(map, graph, *node1, *node2, &self.full_path) {
+                if let Some(entries) = router.pathfind(*node1, *node2, &self.full_path) {
                     // Don't repeat that snapped point
                     assert_eq!(self.full_path.pop(), Some(PathEntry::SnappedPoint(*node1)));
                     self.full_path.extend(entries);
@@ -519,52 +514,53 @@ impl Route {
     }
 }
 
-// Returns a sequence of (SnappedPoint, Edge, SnappedPoint, Edge..., SnappedPoint)
-fn pathfind(
-    map: &RouteSnapperMap,
-    graph: &Graph,
-    node1: NodeID,
-    node2: NodeID,
-    prev_path: &Vec<PathEntry>,
-) -> Option<Vec<PathEntry>> {
-    // Penalize visiting edges we've been to before, so that waypoints don't cause us to double
-    // back
-    // TODO Seems fast enough, but we could cache and build this up incrementally
-    let mut avoid = HashSet::new();
-    for entry in prev_path {
-        if let PathEntry::Edge(e) = entry {
-            avoid.insert(e.0);
+impl Router {
+    // Returns a sequence of (SnappedPoint, Edge, SnappedPoint, Edge..., SnappedPoint)
+    fn pathfind(
+        &self,
+        node1: NodeID,
+        node2: NodeID,
+        prev_path: &Vec<PathEntry>,
+    ) -> Option<Vec<PathEntry>> {
+        // Penalize visiting edges we've been to before, so that waypoints don't cause us to double
+        // back
+        // TODO Seems fast enough, but we could cache and build this up incrementally
+        let mut avoid = HashSet::new();
+        for entry in prev_path {
+            if let PathEntry::Edge(e) = entry {
+                avoid.insert(e.0);
+            }
         }
+
+        let node2_pt = self.map.node(node2);
+
+        let (_, path) = petgraph::algo::astar(
+            &self.graph,
+            node1,
+            |i| i == node2,
+            |(_, _, dir_edge)| {
+                let penalty = if avoid.contains(&dir_edge.0) {
+                    2.0
+                } else {
+                    1.0
+                };
+                penalty * self.map.edge(dir_edge.0).length
+            },
+            |i| self.map.node(i).dist_to(node2_pt),
+        )?;
+
+        let mut entries = Vec::new();
+        for pair in path.windows(2) {
+            entries.push(PathEntry::SnappedPoint(pair[0]));
+            entries.push(PathEntry::Edge(
+                *self.graph.edge_weight(pair[0], pair[1]).unwrap(),
+            ));
+        }
+        entries.push(PathEntry::SnappedPoint(*path.last().unwrap()));
+        assert!(entries[0] == PathEntry::SnappedPoint(node1));
+        assert!(*entries.last().unwrap() == PathEntry::SnappedPoint(node2));
+        Some(entries)
     }
-
-    let node2_pt = map.node(node2);
-
-    let (_, path) = petgraph::algo::astar(
-        graph,
-        node1,
-        |i| i == node2,
-        |(_, _, dir_edge)| {
-            let penalty = if avoid.contains(&dir_edge.0) {
-                2.0
-            } else {
-                1.0
-            };
-            penalty * map.edge(dir_edge.0).length
-        },
-        |i| map.node(i).dist_to(node2_pt),
-    )?;
-
-    let mut entries = Vec::new();
-    for pair in path.windows(2) {
-        entries.push(PathEntry::SnappedPoint(pair[0]));
-        entries.push(PathEntry::Edge(
-            *graph.edge_weight(pair[0], pair[1]).unwrap(),
-        ));
-    }
-    entries.push(PathEntry::SnappedPoint(*path.last().unwrap()));
-    assert!(entries[0] == PathEntry::SnappedPoint(node1));
-    assert!(*entries.last().unwrap() == PathEntry::SnappedPoint(node2));
-    Some(entries)
 }
 
 fn edge_geometry(map: &RouteSnapperMap, dir_edge: DirectedEdge) -> Vec<Pt2D> {
