@@ -9,6 +9,11 @@ export class JsRouteSnapper {
 */
   constructor(map_bytes: Uint8Array);
 /**
+* Updates configuration and recalculates paths. The caller should redraw.
+* @param {any} input
+*/
+  setConfig(input: any): void;
+/**
 * @returns {string | undefined}
 */
   toFinalFeature(): string | undefined;
@@ -49,6 +54,7 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_jsroutesnapper_free: (a: number) => void;
   readonly jsroutesnapper_new: (a: number, b: number, c: number) => void;
+  readonly jsroutesnapper_setConfig: (a: number, b: number) => void;
   readonly jsroutesnapper_toFinalFeature: (a: number, b: number) => void;
   readonly jsroutesnapper_renderGeojson: (a: number, b: number) => void;
   readonly jsroutesnapper_setSnapMode: (a: number, b: number) => void;
@@ -57,10 +63,10 @@ export interface InitOutput {
   readonly jsroutesnapper_onDragStart: (a: number) => number;
   readonly jsroutesnapper_onMouseUp: (a: number) => number;
   readonly jsroutesnapper_clearState: (a: number) => void;
-  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_malloc: (a: number) => number;
-  readonly __wbindgen_free: (a: number, b: number) => void;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
+  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
+  readonly __wbindgen_free: (a: number, b: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;
