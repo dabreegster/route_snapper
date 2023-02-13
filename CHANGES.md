@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.7
+
 - Add a `setConfig` method
 - Add optional behavior to avoid a route doubling back on itself
 - The output now includes a `length_meters` property
