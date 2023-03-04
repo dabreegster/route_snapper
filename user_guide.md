@@ -134,3 +134,25 @@ document.getElementById("snap-tool").addEventListener("new-route", () => {
     featureId: ids[0],
   });
 ```
+
+## Routing caveats
+
+The routes calculated by the tool are based on the input graph. The default
+option described above uses osm2streets and pulls in road segments from
+OpenStreetMap for many modes, including tram or light-rail, walking or cycling
+only paths, and `highway=construction`. The "optimal" paths drawn by the tool
+are based on Euclidean distance -- no speed limits, safety of following the
+route by some user, etc is attempted. The route may violate one-way
+restrictions. In other words, if you're using the defaults, you will get routes
+that shouldn't actually be followed in the real world for many reasons.
+
+This default is designed for one particular use case: drawing potential new
+active travel routes along existing roads. The user designing these proposed
+routes is expected to understand the properties of the roads selected, and
+incorporate appropriate changes in their larger work. The route snapper UI
+emphasizes adjusting waypoints easily, letting the user quickly "mold" whatever
+they have in mind.
+
+If you'd like to use this library for other purposes (like offline routing for
+end-users), you'll need to generate different graphs. Please file an issue to
+start a conversation about this!
