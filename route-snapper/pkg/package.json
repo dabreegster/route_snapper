@@ -14,5 +14,7 @@
   ],
   "module": "route_snapper.js",
   "types": "route_snapper.d.ts",
-  "sideEffects": false
+  "sideEffects": [
+    "./snippets/*"
+  ]
 }
