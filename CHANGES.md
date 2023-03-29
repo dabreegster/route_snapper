@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add an `editExisting` method to modify previously drawn routes
+- The output now includes a `waypoints` property, used for `editExisting`
 
 ## 0.1.7
 

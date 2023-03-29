@@ -4,7 +4,7 @@ use geom::{Distance, HashablePt2D, LonLat, PolyLine, Pt2D};
 use petgraph::graphmap::DiGraphMap;
 use rstar::primitives::GeomWithData;
 use rstar::RTree;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use route_snapper_graph::{EdgeID, NodeID, RouteSnapperMap};
@@ -161,6 +161,25 @@ impl JsRouteSnapper {
             foreign_members: None,
         };
         feature.set_property("length_meters", pl.length().inner_meters());
+
+        let mut waypoints = Vec::new();
+        for waypt in &self.route.waypoints {
+            let gps = self
+                .to_pt(*waypt)
+                .to_pt2d()
+                .to_gps(&self.router.map.gps_bounds);
+            waypoints.push(
+                serde_json::to_value(&RouteWaypoint {
+                    lon: gps.x(),
+                    lat: gps.y(),
+                    snapped: matches!(waypt, Waypoint::Snapped(_)),
+                })
+                .unwrap(),
+            );
+        }
+
+        feature.set_property("waypoints", serde_json::Value::Array(waypoints));
+
         Some(serde_json::to_string_pretty(&feature).unwrap())
     }
 
@@ -395,34 +414,23 @@ impl JsRouteSnapper {
     }
 
     #[wasm_bindgen(js_name = editExisting)]
-    pub fn edit_existing(&mut self, raw_geojson: &str) -> Result<(), JsValue> {
+    pub fn edit_existing(&mut self, raw_waypoints: JsValue) -> Result<(), JsValue> {
         self.clear_state();
 
-        let require_in_bounds = true;
-        let mut results = PolyLine::from_geojson_bytes(
-            raw_geojson.as_bytes(),
-            &self.router.map.gps_bounds,
-            require_in_bounds,
-        )
-        .map_err(err_to_js)?;
-        if results.len() != 1 {
-            return Err(JsValue::from_str(
-                "editExisting didn't get exactly 1 LineString as input",
-            ));
-        }
-        let pl = results.pop().unwrap().0;
+        let waypoints: Vec<RouteWaypoint> = serde_wasm_bindgen::from_value(raw_waypoints)?;
 
-        // Just start with the endpoints snapped to a node
-        if let (Some(node1), Some(node2)) = (
-            self.mouseover_node(pl.first_pt()),
-            self.mouseover_node(pl.last_pt()),
-        ) {
-            self.route
-                .add_waypoint(&self.router, Waypoint::Snapped(node1));
-            self.route
-                .add_waypoint(&self.router, Waypoint::Snapped(node2));
-        } else {
-            return Err(JsValue::from_str("endpoints didn't snap"));
+        for waypt in waypoints {
+            let pt = LonLat::new(waypt.lon, waypt.lat).to_pt(&self.router.map.gps_bounds);
+            if waypt.snapped {
+                if let Some(node) = self.mouseover_node(pt) {
+                    self.route
+                        .add_waypoint(&self.router, Waypoint::Snapped(node));
+                } else {
+                    return Err(JsValue::from_str("A waypoint didn't snap"));
+                }
+            } else {
+                self.route.add_waypoint(&self.router, Waypoint::Free(pt));
+            }
         }
 
         Ok(())
@@ -634,4 +642,12 @@ fn edge_geometry(map: &RouteSnapperMap, dir_edge: DirectedEdge) -> Vec<Pt2D> {
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
     JsValue::from_str(&err.to_string())
+}
+
+// Encode a route's waypoints as GeoJSON properties, so we can later losslessly restore a route
+#[derive(Serialize, Deserialize)]
+struct RouteWaypoint {
+    lon: f64,
+    lat: f64,
+    snapped: bool,
 }
