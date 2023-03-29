@@ -155,18 +155,26 @@
             });
             if (features.length > 0) {
               // If multiple routes overlap, arbitrarily edit one of them
-              let edit = features[0];
+              let editUid = features[0].properties.uid;
 
               // First remove the route from the completed set, so we don't
               // have duplicates. Be careful with the comparison;
               // queryRenderedFeatures doesn't have back a regular GeoJSON
-              // feature.
+              // feature. We need to retrieve the full feature for this reason.
+              let editFeature;
               completedRoutes.features = completedRoutes.features.filter(
-                (f) => f.properties.uid != edit.properties.uid
+                (f) => {
+                  if (f.properties.uid == editUid) {
+                    editFeature = f;
+                    return false;
+                  } else {
+                    return true;
+                  }
+                }
               );
               map.getSource("finished-routes").setData(completedRoutes);
 
-              routeSnapper.editExisting(edit);
+              routeSnapper.editExisting(editFeature);
             }
           }
         });
