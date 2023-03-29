@@ -155,6 +155,14 @@ export class RouteSnapper {
     // TODO Remove the event listeners on document and map
   }
 
+  // This takes a GeoJSON feature previously returned from the new-route event.
+  // It must have all properties returned originally.
+  editExisting(feature) {
+    this.#activeControl();
+    this.inner.editExisting(feature.properties.waypoints);
+    this.#redraw();
+  }
+
   #inactiveControl() {
     this.active = false;
 

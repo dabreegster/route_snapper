@@ -76,6 +76,8 @@
         boxZoom: false,
       });
 
+      let routeSnapper;
+
       map.on("load", function () {
         map.addSource("boundary", {
           type: "geojson",
@@ -122,8 +124,11 @@
             "line-width": 5,
           },
         });
+        let idCounter = 0;
         let snapTool = document.getElementById("snap-tool");
         snapTool.addEventListener("new-route", (e) => {
+          // Assign a unique ID, so we can later delete it
+          e.detail.properties.uid = idCounter++;
           completedRoutes.features.push(e.detail);
           map.getSource("finished-routes").setData(completedRoutes);
           document.getElementById(
@@ -142,6 +147,37 @@
           completedRoutes.features = [];
           map.getSource("finished-routes").setData(completedRoutes);
         };
+
+        map.on("click", (e) => {
+          if (!routeSnapper || !routeSnapper.isActive()) {
+            let features = map.queryRenderedFeatures(e.point, {
+              layers: ["finished-routes"],
+            });
+            if (features.length > 0) {
+              // If multiple routes overlap, arbitrarily edit one of them
+              let editUid = features[0].properties.uid;
+
+              // First remove the route from the completed set, so we don't
+              // have duplicates. Be careful with the comparison;
+              // queryRenderedFeatures doesn't have back a regular GeoJSON
+              // feature. We need to retrieve the full feature for this reason.
+              let editFeature;
+              completedRoutes.features = completedRoutes.features.filter(
+                (f) => {
+                  if (f.properties.uid == editUid) {
+                    editFeature = f;
+                    return false;
+                  } else {
+                    return true;
+                  }
+                }
+              );
+              map.getSource("finished-routes").setData(completedRoutes);
+
+              routeSnapper.editExisting(editFeature);
+            }
+          }
+        });
       });
 
       await init();
@@ -152,7 +188,7 @@
           url,
           document.getElementById("snap-progress")
         );
-        let routeSnapper = new RouteSnapper(
+        routeSnapper = new RouteSnapper(
           map,
           graphBytes,
           document.getElementById("snap-tool")
