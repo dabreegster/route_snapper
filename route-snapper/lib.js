@@ -155,6 +155,12 @@ export class RouteSnapper {
     // TODO Remove the event listeners on document and map
   }
 
+  editExisting(feature) {
+    this.#activeControl();
+    this.inner.editExisting(JSON.stringify(feature));
+    this.#redraw();
+  }
+
   #inactiveControl() {
     this.active = false;
 
