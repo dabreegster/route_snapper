@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add an `editExisting` method to modify previously drawn routes
+
 ## 0.1.7
 
 - Add a `setConfig` method

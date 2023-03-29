@@ -103,8 +103,7 @@ impl JsRouteSnapper {
 
         web_sys::console::log_1(&format!("Got {} bytes, deserializing", map_bytes.len()).into());
 
-        let mut map: RouteSnapperMap =
-            bincode::deserialize(map_bytes).map_err(|err| JsValue::from_str(&err.to_string()))?;
+        let mut map: RouteSnapperMap = bincode::deserialize(map_bytes).map_err(err_to_js)?;
         for edge in &mut map.edges {
             edge.length = edge.geometry.length();
         }
@@ -394,6 +393,40 @@ impl JsRouteSnapper {
         self.route = Route::new();
         self.mode = Mode::Neutral;
     }
+
+    #[wasm_bindgen(js_name = editExisting)]
+    pub fn edit_existing(&mut self, raw_geojson: &str) -> Result<(), JsValue> {
+        self.clear_state();
+
+        let require_in_bounds = true;
+        let mut results = PolyLine::from_geojson_bytes(
+            raw_geojson.as_bytes(),
+            &self.router.map.gps_bounds,
+            require_in_bounds,
+        )
+        .map_err(err_to_js)?;
+        if results.len() != 1 {
+            return Err(JsValue::from_str(
+                "editExisting didn't get exactly 1 LineString as input",
+            ));
+        }
+        let pl = results.pop().unwrap().0;
+
+        // Just start with the endpoints snapped to a node
+        if let (Some(node1), Some(node2)) = (
+            self.mouseover_node(pl.first_pt()),
+            self.mouseover_node(pl.last_pt()),
+        ) {
+            self.route
+                .add_waypoint(&self.router, Waypoint::Snapped(node1));
+            self.route
+                .add_waypoint(&self.router, Waypoint::Snapped(node2));
+        } else {
+            return Err(JsValue::from_str("endpoints didn't snap"));
+        }
+
+        Ok(())
+    }
 }
 
 impl JsRouteSnapper {
@@ -597,4 +630,8 @@ fn edge_geometry(map: &RouteSnapperMap, dir_edge: DirectedEdge) -> Vec<Pt2D> {
         pts.reverse();
     }
     pts
+}
+
+fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
+    JsValue::from_str(&err.to_string())
 }
