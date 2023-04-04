@@ -138,7 +138,7 @@ export class RouteSnapper {
         }
       });
 
-      this.#inactiveControl();
+      this.stop();
     });
   }
 
@@ -163,7 +163,8 @@ export class RouteSnapper {
     this.#redraw();
   }
 
-  #inactiveControl() {
+  // Deactivate the tool, clearing all state. No events (`no-new-route`) are fired.
+  stop() {
     this.active = false;
 
     this.inner.clearState();
@@ -232,7 +233,7 @@ export class RouteSnapper {
     } else {
       this.controlDiv.dispatchEvent(new CustomEvent("no-new-route"));
     }
-    this.#inactiveControl();
+    this.stop();
   }
 
   #redraw() {

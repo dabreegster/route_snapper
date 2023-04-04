@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a `stop` method, so the tool can be programmatically controlled
+
 ## 0.1.8
 
 - Add an `editExisting` method to modify previously drawn routes
