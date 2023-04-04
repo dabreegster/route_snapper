@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.9
+
 - Add a `stop` method, so the tool can be programmatically controlled
 
 ## 0.1.8
