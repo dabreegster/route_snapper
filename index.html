@@ -36,6 +36,12 @@
         z-index: 5;
         padding: 20px;
       }
+      #deactivate {
+        position: absolute;
+        top: 100px;
+        z-index: 5;
+        padding: 20px;
+      }
       #status {
         position: absolute;
         left: 150px;
@@ -46,6 +52,9 @@
   </head>
   <body>
     <button type="button" id="clear">Clear routes</button>
+    <button type="button" id="deactivate">
+      Deactivate (not part of the main control)
+    </button>
     <div id="status">Inactive</div>
     <div id="map"></div>
     <div id="snap-tool">
@@ -146,6 +155,10 @@
         document.getElementById("clear").onclick = () => {
           completedRoutes.features = [];
           map.getSource("finished-routes").setData(completedRoutes);
+        };
+
+        document.getElementById("deactivate").onclick = () => {
+          routeSnapper?.stop();
         };
 
         map.on("click", (e) => {
