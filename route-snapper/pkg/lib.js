@@ -164,7 +164,9 @@ export class RouteSnapper {
   }
 
   // This takes a GeoJSON feature previously returned from the new-route event.
-  // It must have all properties returned originally.
+  // It must have all properties returned originally. If waypoints are missing
+  // (maybe because the route was produced by a different tool, or an older
+  // version of this tool), the edited line-string may differ from the input.
   editExisting(feature) {
     if (!this.loaded) {
       // TODO This is an unlikely race condition. What should we do?
@@ -173,6 +175,28 @@ export class RouteSnapper {
       );
       return;
     }
+
+    if (!feature.properties.waypoints) {
+      // Only use the first and last points as waypoints, and assume they're
+      // snapped. This only works for the simplest cases.
+      feature.properties.waypoints = [
+        {
+          lon: feature.geometry.coordinates[0][0],
+          lat: feature.geometry.coordinates[0][1],
+          snapped: true,
+        },
+        {
+          lon: feature.geometry.coordinates[
+            feature.geometry.coordinates.length - 1
+          ][0],
+          lat: feature.geometry.coordinates[
+            feature.geometry.coordinates.length - 1
+          ][1],
+          snapped: true,
+        },
+      ];
+    }
+
     this.#activeControl();
     this.inner.editExisting(feature.properties.waypoints);
     this.#redraw();
