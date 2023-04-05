@@ -14,8 +14,11 @@ export class RouteSnapper {
     console.timeEnd("Deserialize and setup JsRouteSnapper");
     console.log("JsRouteSnapper ready, waiting for idle event");
     this.active = false;
+    // Indicates the idle event has been received, and the source/layers are set up
+    this.loaded = false;
 
-    // on(load) is a bad trigger, because downloading the RouteSnapper input can race. Just wait for the map to be usable.
+    // on(load) is a bad trigger, because downloading the RouteSnapper input
+    // can race. Just wait for the map to be usable.
     this.map.once("idle", () => {
       console.log("JsRouteSnapper now usable");
       this.map.addSource("route-snapper", {
@@ -65,6 +68,7 @@ export class RouteSnapper {
         },
         filter: ["in", "$type", "LineString"],
       });
+      this.loaded = true;
 
       this.map.on("mousemove", (e) => {
         if (!this.active) {
@@ -149,6 +153,10 @@ export class RouteSnapper {
   // Destroy resources attached to the map. Warning, this doesn't yet handle
   // event listeners!
   tearDown() {
+    if (!this.loaded) {
+      // TODO Can we cancel the map.on(idle) event?
+      return;
+    }
     this.map.removeLayer("route-points");
     this.map.removeLayer("route-lines");
     this.map.removeSource("route-snapper");
@@ -158,6 +166,13 @@ export class RouteSnapper {
   // This takes a GeoJSON feature previously returned from the new-route event.
   // It must have all properties returned originally.
   editExisting(feature) {
+    if (!this.loaded) {
+      // TODO This is an unlikely race condition. What should we do?
+      console.error(
+        "editExisting called before the map idle event received. Not starting tool."
+      );
+      return;
+    }
     this.#activeControl();
     this.inner.editExisting(feature.properties.waypoints);
     this.#redraw();
@@ -165,6 +180,10 @@ export class RouteSnapper {
 
   // Deactivate the tool, clearing all state. No events (`no-new-route`) are fired.
   stop() {
+    if (!this.loaded) {
+      return;
+    }
+
     this.active = false;
 
     this.inner.clearState();
@@ -237,9 +256,11 @@ export class RouteSnapper {
   }
 
   #redraw() {
-    this.map
-      .getSource("route-snapper")
-      .setData(JSON.parse(this.inner.renderGeojson()));
+    if (this.loaded) {
+      this.map
+        .getSource("route-snapper")
+        .setData(JSON.parse(this.inner.renderGeojson()));
+    }
   }
 }
 
