@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix some race conditions at startup
+
 ## 0.1.9
 
 - Add a `stop` method, so the tool can be programmatically controlled
