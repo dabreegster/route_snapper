@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Backfill missing `waypoints` properties if possible when calling
+  `editExisting`. If you input routes drawn before 0.1.8, this will help, but
+  may imperfectly restore the previous route.
 - Fix some race conditions at startup
 
 ## 0.1.9
