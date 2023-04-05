@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.10
+
 - Backfill missing `waypoints` properties if possible when calling
   `editExisting`. If you input routes drawn before 0.1.8, this will help, but
   may imperfectly restore the previous route.
