@@ -167,6 +167,8 @@ export class RouteSnapper {
   // It must have all properties returned originally. If waypoints are missing
   // (maybe because the route was produced by a different tool, or an older
   // version of this tool), the edited line-string may differ from the input.
+  //
+  // Note no events are fired by calling this.
   editExisting(feature) {
     if (!this.loaded) {
       // TODO This is an unlikely race condition. What should we do?
@@ -218,12 +220,13 @@ export class RouteSnapper {
     btn.innerText = "Route tool";
     btn.type = "button";
     btn.onclick = () => {
+      this.controlDiv.dispatchEvent(new CustomEvent("activate"));
       this.start();
     };
     this.controlDiv.appendChild(btn);
   }
 
-  // Activate the tool. The `activate` event will be fired.
+  // Activate the tool.
   start() {
     // If we were already active, don't do anything
     if (this.active) {
@@ -231,7 +234,6 @@ export class RouteSnapper {
     }
 
     this.active = true;
-    this.controlDiv.dispatchEvent(new CustomEvent("activate"));
 
     let btn1 = document.createElement("button");
     btn1.type = "button";
@@ -281,7 +283,7 @@ export class RouteSnapper {
       `<li><b>Click and drag</b> any point to move it</li>` +
       `<li><b>Click</b> a red waypoint to delete it</li>` +
       `<li>Press <b>Enter</b> to finish route</li>`;
-      `<li>Press <b>Escape</b> to cancel and discard route</li>`;
+    `<li>Press <b>Escape</b> to cancel and discard route</li>`;
 
     this.controlDiv.appendChild(instructions);
   }

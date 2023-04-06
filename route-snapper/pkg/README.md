@@ -83,6 +83,10 @@ There are other events you may care about:
 - `no-new-route`: The user started drawing a route, but cancelled or otherwise
   didn't produce any valid result
 
+Note `activate` isn't fired if you manually call `start()` or `editExisting()`,
+only when the button is pressed. These details are subject to change before the
+next major version.
+
 ### API
 
 There are a few methods on the `RouteSnapper` object you can call:
