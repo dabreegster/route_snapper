@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a `start` method, so the tool can be programmatically controlled
+
 ## 0.1.10
 
 - Backfill missing `waypoints` properties if possible when calling
