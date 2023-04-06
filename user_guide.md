@@ -96,6 +96,7 @@ There are a few methods on the `RouteSnapper` object you can call:
 - `editExisting` to restart the tool with a previously created route. See notes
   in [the example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.html)
   about how to call it.
+- `start` activates the tool. It has no effect if the tool is already started.
 - `stop` deactivates the tool and clears all state
 
 ### MapLibre gotchas

@@ -233,14 +233,27 @@ export class RouteSnapper {
     this.active = true;
     this.controlDiv.dispatchEvent(new CustomEvent("activate"));
 
-    this.controlDiv.innerHTML = "";
-    let btn = document.createElement("button");
-    btn.type = "button";
-    btn.innerText = "Finish route";
-    btn.onclick = () => {
+    let btn1 = document.createElement("button");
+    btn1.type = "button";
+    btn1.innerText = "Finish route";
+    btn1.onclick = () => {
       this.#finishSnapping();
     };
-    this.controlDiv.appendChild(btn);
+
+    let btn2 = document.createElement("button");
+    btn2.type = "button";
+    btn2.innerText = "Cancel";
+    btn2.onclick = () => {
+      this.controlDiv.dispatchEvent(new CustomEvent("no-new-route"));
+      this.stop();
+    };
+
+    this.controlDiv.innerHTML = "";
+    let buttons = document.createElement("div");
+    buttons.style = "display: flex; justify-content: space-evenly;";
+    buttons.appendChild(btn1);
+    buttons.appendChild(btn2);
+    this.controlDiv.appendChild(buttons);
 
     let avoidDoublingBack = document.createElement("input");
     avoidDoublingBack.type = "checkbox";
@@ -268,6 +281,7 @@ export class RouteSnapper {
       `<li><b>Click and drag</b> any point to move it</li>` +
       `<li><b>Click</b> a red waypoint to delete it</li>` +
       `<li>Press <b>Enter</b> to finish route</li>`;
+      `<li>Press <b>Escape</b> to cancel and discard route</li>`;
 
     this.controlDiv.appendChild(instructions);
   }
