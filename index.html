@@ -31,31 +31,39 @@
 
         background-color: white;
       }
-      #clear {
+      #top-left {
         position: absolute;
-        z-index: 5;
-        padding: 20px;
-      }
-      #deactivate {
-        position: absolute;
-        top: 100px;
-        z-index: 5;
-        padding: 20px;
-      }
-      #status {
-        position: absolute;
-        left: 150px;
         z-index: 5;
         padding: 20px;
         background-color: white;
+      }
+      .row {
+        margin: 16px 0px;
+      }
+      #status {
+        border: 4px solid;
+        padding: 6px;
+      }
     </style>
   </head>
   <body>
-    <button type="button" id="clear">Clear routes</button>
-    <button type="button" id="deactivate">
-      Deactivate (not part of the main control)
-    </button>
-    <div id="status">Inactive</div>
+    <div id="top-left">
+      <div class="row">
+        <button type="button" id="clear">Clear routes</button>
+      </div>
+      <div class="row">
+        <button type="button" id="start">
+          Start (not part of the main control)
+        </button>
+      </div>
+      <div class="row">
+        <button type="button" id="stop">
+          Stop (not part of the main control)
+        </button>
+      </div>
+      <div class="row">Click an existing route to edit</div>
+      <div id="status">Inactive</div>
+    </div>
     <div id="map"></div>
     <div id="snap-tool">
       <!-- TODO the text should be fixed, and the progress bar float -->
@@ -157,7 +165,10 @@
           map.getSource("finished-routes").setData(completedRoutes);
         };
 
-        document.getElementById("deactivate").onclick = () => {
+        document.getElementById("start").onclick = () => {
+          routeSnapper?.start();
+        };
+        document.getElementById("stop").onclick = () => {
           routeSnapper?.stop();
         };
 

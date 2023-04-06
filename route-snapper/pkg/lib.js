@@ -197,7 +197,7 @@ export class RouteSnapper {
       ];
     }
 
-    this.#activeControl();
+    this.start();
     this.inner.editExisting(feature.properties.waypoints);
     this.#redraw();
   }
@@ -218,12 +218,18 @@ export class RouteSnapper {
     btn.innerText = "Route tool";
     btn.type = "button";
     btn.onclick = () => {
-      this.#activeControl();
+      this.start();
     };
     this.controlDiv.appendChild(btn);
   }
 
-  #activeControl() {
+  // Activate the tool. The `activate` event will be fired.
+  start() {
+    // If we were already active, don't do anything
+    if (this.active) {
+      return;
+    }
+
     this.active = true;
     this.controlDiv.dispatchEvent(new CustomEvent("activate"));
 
