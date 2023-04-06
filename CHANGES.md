@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.11
+
 - Add a `start` method, so the tool can be programmatically controlled
 - Add a button to cancel from drawing or editing a route
 
