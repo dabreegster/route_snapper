@@ -7,6 +7,8 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+- Add an optional mode to draw closed areas
+
 ## 0.1.12
 
 - Adjust when the `activate` event is fired
