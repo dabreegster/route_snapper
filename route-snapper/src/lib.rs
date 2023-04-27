@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use std::collections::{BTreeMap, HashSet};
 
 use geom::{Distance, HashablePt2D, LonLat, PolyLine, Pt2D};
@@ -100,15 +103,16 @@ impl JsRouteSnapper {
     pub fn new(map_bytes: &[u8]) -> Result<JsRouteSnapper, JsValue> {
         // Panics shouldn't happen, but if they do, console.log them.
         console_error_panic_hook::set_once();
+        console_log::init_with_level(log::Level::Info).unwrap();
 
-        web_sys::console::log_1(&format!("Got {} bytes, deserializing", map_bytes.len()).into());
+        info!("Got {} bytes, deserializing", map_bytes.len());
 
         let mut map: RouteSnapperMap = bincode::deserialize(map_bytes).map_err(err_to_js)?;
         for edge in &mut map.edges {
             edge.length = edge.geometry.length();
         }
 
-        web_sys::console::log_1(&"Finalizing JsRouteSnapper".into());
+        info!("Finalizing JsRouteSnapper");
 
         let mut graph: Graph = DiGraphMap::new();
         for (idx, e) in map.edges.iter().enumerate() {
