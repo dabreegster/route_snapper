@@ -30,8 +30,9 @@ export class RouteSnapper {
       });
       this.map.addLayer({
         id: "route-points",
-        type: "circle",
         source: "route-snapper",
+        filter: ["in", "$type", "Point"],
+        type: "circle",
         paint: {
           "circle-radius": [
             "match",
@@ -52,12 +53,12 @@ export class RouteSnapper {
             "black",
           ],
         },
-        filter: ["in", "$type", "Point"],
       });
       this.map.addLayer({
         id: "route-lines",
-        type: "line",
         source: "route-snapper",
+        filter: ["in", "$type", "LineString"],
+        type: "line",
         layout: {
           "line-cap": "round",
           "line-join": "round",
@@ -66,7 +67,16 @@ export class RouteSnapper {
           "line-color": "black",
           "line-width": 2.5,
         },
-        filter: ["in", "$type", "LineString"],
+      });
+      this.map.addLayer({
+        id: "route-polygons",
+        source: "route-snapper",
+        filter: ["in", "$type", "Polygon"],
+        type: "fill",
+        paint: {
+          "fill-color": "black",
+          "fill-opacity": 0.4,
+        },
       });
       this.loaded = true;
 
@@ -200,6 +210,15 @@ export class RouteSnapper {
     }
 
     this.start();
+
+    // Warning, must do this!
+    if (feature.geometry.type == "Polygon") {
+      this.inner.setConfig({
+        avoid_doubling_back: true,
+        area_mode: true,
+      });
+    }
+
     this.inner.editExisting(feature.properties.waypoints);
     this.#redraw();
   }
@@ -260,21 +279,45 @@ export class RouteSnapper {
     let avoidDoublingBack = document.createElement("input");
     avoidDoublingBack.type = "checkbox";
     avoidDoublingBack.id = "avoidDoublingBack";
-    avoidDoublingBack.onclick = () => {
-      this.inner.setConfig({
-        avoid_doubling_back: avoidDoublingBack.checked,
-      });
-      this.#redraw();
-    };
 
     let avoidDoublingBackLabel = document.createElement("label");
     avoidDoublingBackLabel.innerText = "Avoid doubling back";
     avoidDoublingBackLabel.for = avoidDoublingBack.id;
 
-    let checkboxDiv = document.createElement("div");
-    checkboxDiv.appendChild(avoidDoublingBack);
-    checkboxDiv.appendChild(avoidDoublingBackLabel);
-    this.controlDiv.append(checkboxDiv);
+    let areaMode = document.createElement("input");
+    areaMode.type = "checkbox";
+    areaMode.id = "areaMode";
+
+    let areaModelabel = document.createElement("label");
+    areaModelabel.innerText = "Area mode";
+    areaModelabel.for = areaMode.id;
+
+    let checkboxDiv1 = document.createElement("div");
+    checkboxDiv1.appendChild(avoidDoublingBack);
+    checkboxDiv1.appendChild(avoidDoublingBackLabel);
+    this.controlDiv.append(checkboxDiv1);
+
+    let checkboxDiv2 = document.createElement("div");
+    checkboxDiv2.appendChild(areaMode);
+    checkboxDiv2.appendChild(areaModelabel);
+    this.controlDiv.append(checkboxDiv2);
+
+    avoidDoublingBack.onclick = () => {
+      this.inner.setConfig({
+        avoid_doubling_back: avoidDoublingBack.checked,
+        area_mode: areaMode.checked,
+      });
+      this.#redraw();
+    };
+
+    areaMode.onclick = () => {
+      // TODO Force avoidDoublingBack on too in the controls
+      this.inner.setConfig({
+        avoid_doubling_back: true,
+        area_mode: areaMode.checked,
+      });
+      this.#redraw();
+    };
 
     const instructions = document.createElement("ul");
     instructions.innerHTML =

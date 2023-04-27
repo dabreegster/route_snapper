@@ -135,10 +135,21 @@
         map.addLayer({
           id: "finished-routes",
           source: "finished-routes",
+          filter: ["in", "$type", "LineString"],
           type: "line",
           paint: {
             "line-color": "blue",
             "line-width": 5,
+          },
+        });
+        map.addLayer({
+          id: "finished-areas",
+          source: "finished-routes",
+          filter: ["in", "$type", "Polygon"],
+          type: "fill",
+          paint: {
+            "fill-color": "blue",
+            "fill-opacity": 0.2,
           },
         });
         let idCounter = 0;
@@ -175,7 +186,7 @@
         map.on("click", (e) => {
           if (!routeSnapper || !routeSnapper.isActive()) {
             let features = map.queryRenderedFeatures(e.point, {
-              layers: ["finished-routes"],
+              layers: ["finished-routes", "finished-areas"],
             });
             if (features.length > 0) {
               // If multiple routes overlap, arbitrarily edit one of them

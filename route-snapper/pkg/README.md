@@ -97,6 +97,8 @@ There are a few methods on the `RouteSnapper` object you can call:
 - `setConfig` to change some settings
   - `avoid_doubling_back` (disabled by default): When possible, avoid edges
     already crossed for handling intermediate waypoints
+  - `area_mode` (disabled by default): Produce closed polygons instead of
+    line-strings.
 - `editExisting` to restart the tool with a previously created route. See notes
   in [the example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.html)
   about how to call it.
