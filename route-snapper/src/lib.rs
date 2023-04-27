@@ -3,6 +3,7 @@ extern crate log;
 
 use std::collections::{BTreeMap, HashSet};
 
+use geojson::Feature;
 use geom::{Distance, HashablePt2D, LonLat, PolyLine, Pt2D};
 use petgraph::graphmap::DiGraphMap;
 use rstar::primitives::GeomWithData;
@@ -27,6 +28,7 @@ pub struct JsRouteSnapper {
 #[derive(Default, Deserialize)]
 struct Config {
     avoid_doubling_back: bool,
+    area_mode: bool,
 }
 
 struct Router {
@@ -149,23 +151,27 @@ impl JsRouteSnapper {
                 self.route.recalculate_full_path(&self.router);
             }
             Err(err) => {
-                web_sys::console::log_1(&format!("Bad input to setConfig: {}", err).into());
+                error!("Bad input to setConfig: {err}");
             }
         }
     }
 
     #[wasm_bindgen(js_name = toFinalFeature)]
     pub fn to_final_feature(&self) -> Option<String> {
-        let pl = self.entire_line_string()?;
-        let mut feature = geojson::Feature {
-            bbox: None,
-            geometry: Some(pl.to_geojson(Some(&self.router.map.gps_bounds))),
-            id: None,
-            properties: None,
-            foreign_members: None,
+        let mut feature = if self.router.config.area_mode {
+            if let Some(polygon) = self.into_polygon_area() {
+                Feature::from(polygon)
+            } else {
+                return None;
+            }
+        } else {
+            let pl = self.entire_line_string()?;
+            let mut f = Feature::from(pl.to_geojson(Some(&self.router.map.gps_bounds)));
+            f.set_property("length_meters", pl.length().inner_meters());
+            f
         };
-        feature.set_property("length_meters", pl.length().inner_meters());
 
+        // Set these on both LineStrings and Polygons
         let mut waypoints = Vec::new();
         for waypt in &self.route.waypoints {
             let gps = self
@@ -181,7 +187,6 @@ impl JsRouteSnapper {
                 .unwrap(),
             );
         }
-
         feature.set_property("waypoints", serde_json::Value::Array(waypoints));
 
         Some(serde_json::to_string_pretty(&feature).unwrap())
@@ -218,11 +223,12 @@ impl JsRouteSnapper {
             draw_circles.insert(self.to_pt(hover), "hovered");
 
             if let (Some(last), Waypoint::Snapped(current)) = (self.route.waypoints.last(), hover) {
-                // If we're trying to drag a point, don't show this preview
-                if !self
-                    .route
-                    .full_path
-                    .contains(&PathEntry::SnappedPoint(current))
+                // If we're trying to drag a point or it's a closed area, don't show this preview
+                if !self.route.is_closed_area()
+                    && !self
+                        .route
+                        .full_path
+                        .contains(&PathEntry::SnappedPoint(current))
                 {
                     match last {
                         Waypoint::Snapped(last) => {
@@ -305,12 +311,23 @@ impl JsRouteSnapper {
             ));
         }
 
+        // A polygon for the area
+        if self.router.config.area_mode {
+            if let Some(polygon) = self.into_polygon_area() {
+                result.push((polygon, serde_json::Map::new()));
+            }
+        }
+
         let obj = geom::geometries_with_properties_to_geojson(result);
         serde_json::to_string_pretty(&obj).unwrap()
     }
 
     #[wasm_bindgen(js_name = setSnapMode)]
     pub fn set_snap_mode(&mut self, snap_mode: bool) {
+        // No freehand in area mode yet
+        if !snap_mode && self.router.config.area_mode {
+            return;
+        }
         self.snap_mode = snap_mode;
     }
 
@@ -364,22 +381,43 @@ impl JsRouteSnapper {
 
     #[wasm_bindgen(js_name = onClick)]
     pub fn on_click(&mut self) {
-        if let Mode::Freehand(pt) = self.mode {
-            self.route.add_waypoint(&self.router, Waypoint::Free(pt));
+        // TODO Allow freehand points for areas, once we can convert existing waypoints
+        if !self.router.config.area_mode {
+            if let Mode::Freehand(pt) = self.mode {
+                self.route.add_waypoint(&self.router, Waypoint::Free(pt));
+            }
         }
 
         if let Mode::Hovering(hover) = self.mode {
             if let Some(idx) = self.route.waypoints.iter().position(|x| *x == hover) {
-                // If we click on an existing waypoint and it's not the first or last, delete it
-                if !self.route.waypoints.is_empty()
-                    && idx != 0
-                    && idx != self.route.waypoints.len() - 1
-                {
-                    self.route.waypoints.remove(idx);
-                    self.route.recalculate_full_path(&self.router);
+                // Click an existing waypoint to delete it
+                if self.route.is_closed_area() {
+                    // Don't go below 2 waypoints (+1 because first=last)
+                    // TODO Allow deleting the special first=last waypoint
+                    if self.route.waypoints.len() > 3
+                        && idx != 0
+                        && idx != self.route.waypoints.len() - 1
+                    {
+                        self.route.waypoints.remove(idx);
+                        self.route.recalculate_full_path(&self.router);
+                    }
+                } else {
+                    // Don't delete the only waypoint
+                    if self.route.waypoints.len() > 1 {
+                        self.route.waypoints.remove(idx);
+                        self.route.recalculate_full_path(&self.router);
+                    }
                 }
             } else {
                 self.route.add_waypoint(&self.router, hover);
+                if self.router.config.area_mode
+                    && !self.route.is_closed_area()
+                    && self.route.waypoints.len() == 3
+                {
+                    // Close off the area
+                    self.route
+                        .add_waypoint(&self.router, self.route.waypoints[0]);
+                }
             }
         }
     }
@@ -453,6 +491,17 @@ impl JsRouteSnapper {
         }
 
         let node = self.mouseover_node(pt)?;
+
+        // If we've closed off an area, don't snap to other nodes
+        if self.route.is_closed_area()
+            && !self
+                .route
+                .full_path
+                .contains(&PathEntry::SnappedPoint(node))
+        {
+            return None;
+        }
+
         Some(Waypoint::Snapped(node))
     }
     fn mouseover_node(&self, pt: Pt2D) -> Option<NodeID> {
@@ -488,6 +537,26 @@ impl JsRouteSnapper {
             return None;
         }
         Some(PolyLine::unchecked_new(pts))
+    }
+
+    fn into_polygon_area(&self) -> Option<geojson::Geometry> {
+        if !self.route.is_closed_area() {
+            return None;
+        }
+        let pl = self.entire_line_string()?;
+        // We could put the points into Ring, but it's too strict about repeating points. Better to
+        // just render something.
+        let outer_ring = pl
+            .into_points()
+            .into_iter()
+            .map(|pt| {
+                let gps = pt.to_gps(&self.router.map.gps_bounds);
+                vec![gps.x(), gps.y()]
+            })
+            .collect();
+        Some(geojson::Geometry::from(geojson::Value::Polygon(vec![
+            outer_ring,
+        ])))
     }
 
     fn to_pt(&self, waypt: Waypoint) -> HashablePt2D {
@@ -532,10 +601,23 @@ impl Route {
 
         // Move an existing waypoint?
         if let Some(way_idx) = self.waypoints.iter().position(|x| *x == old_waypt) {
-            self.waypoints[way_idx] = new_waypt;
+            if self.is_closed_area() && way_idx == 0 {
+                // way_idx will never be the last; 0 will match first
+                self.waypoints[0] = new_waypt;
+                *self.waypoints.last_mut().unwrap() = new_waypt;
+            } else {
+                self.waypoints[way_idx] = new_waypt;
+            }
         } else {
             // Find the next waypoint after this one
-            for entry in &self.full_path[full_idx..] {
+            for (idx_offset, entry) in self.full_path[full_idx..].iter().enumerate() {
+                // Special case for areas: the first and last waypoints are equal. If we scan all
+                // the way to the end of full_path, treat it as the last
+                if self.is_closed_area() && full_idx + idx_offset == self.full_path.len() - 1 {
+                    self.waypoints.insert(self.waypoints.len() - 1, new_waypt);
+                    break;
+                }
+
                 if let Some(way_idx) = self
                     .waypoints
                     .iter()
@@ -582,6 +664,12 @@ impl Route {
                 self.full_path.push(add);
             }
         }
+    }
+
+    fn is_closed_area(&self) -> bool {
+        // TODO When area mode is false, somebody could make a linestring like this and mess things
+        // up
+        self.waypoints.len() >= 2 && self.waypoints[0] == *self.waypoints.last().unwrap()
     }
 }
 
