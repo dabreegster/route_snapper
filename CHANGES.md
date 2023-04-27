@@ -7,6 +7,8 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+## 0.1.13
+
 - Add an optional mode to draw closed areas
 
 ## 0.1.12
