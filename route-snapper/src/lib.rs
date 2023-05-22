@@ -29,6 +29,7 @@ pub struct JsRouteSnapper {
 struct Config {
     avoid_doubling_back: bool,
     area_mode: bool,
+    extend_route: bool,
 }
 
 struct Router {
@@ -343,17 +344,19 @@ impl JsRouteSnapper {
         let pt = LonLat::new(lon, lat).to_pt(&self.router.map.gps_bounds);
         let circle_radius = Distance::meters(circle_radius_meters);
 
-        if !self.snap_mode && !matches!(self.mode, Mode::Dragging { .. }) {
+        if self.can_extend_route() && !self.snap_mode && !matches!(self.mode, Mode::Dragging { .. })
+        {
             self.mode = Mode::Freehand(pt);
             return true;
         }
 
+        let mut changed = false;
         match self.mode {
             // If we were just in freehand mode and we released the key, go back to snapping
             Mode::Neutral | Mode::Freehand(_) => {
                 if let Some(waypt) = self.mouseover_something(pt, circle_radius) {
                     self.mode = Mode::Hovering(waypt);
-                    return true;
+                    changed = true;
                 }
             }
             Mode::Hovering(_) => {
@@ -362,7 +365,7 @@ impl JsRouteSnapper {
                 } else {
                     self.mode = Mode::Neutral;
                 }
-                return true;
+                changed = true;
             }
             Mode::Dragging { idx, at } => {
                 let new_waypt = match at {
@@ -376,13 +379,35 @@ impl JsRouteSnapper {
                             idx: new_idx,
                             at: new_waypt,
                         };
-                        return true;
+                        changed = true;
                     }
                 }
             }
         }
 
-        false
+        if changed {
+            self.dont_hover_new_points();
+        }
+
+        changed
+    }
+
+    // Can we add new points to the end of the route right now?
+    fn can_extend_route(&self) -> bool {
+        self.route.waypoints.len() < 2 || self.router.config.extend_route
+    }
+
+    // If we shouldn't extend the route right now, then only allow hovering on a point already in
+    // the route (for dragging it). Don't hover on any new points.
+    fn dont_hover_new_points(&mut self) {
+        if !self.can_extend_route() {
+            if let Mode::Hovering(waypt) = self.mode {
+                if !self.route.full_path.contains(&waypt.to_path_entry()) {
+                    // We're not dragging
+                    self.mode = Mode::Neutral;
+                }
+            }
+        }
     }
 
     #[wasm_bindgen(js_name = onClick)]
@@ -412,9 +437,18 @@ impl JsRouteSnapper {
                     if self.route.waypoints.len() > 1 {
                         self.route.waypoints.remove(idx);
                         self.route.recalculate_full_path(&self.router);
+                        // We're still in a hovering state on the point we just deleted. We may
+                        // want to reset and stop hovering on this point.
+                        self.dont_hover_new_points();
                     }
                 }
             } else {
+                // Clicking an intermediate point shouldn't do anything. It's usually a user error;
+                // they meant to click and drag.
+                if self.route.full_path.contains(&hover.to_path_entry()) {
+                    return;
+                }
+
                 self.route.add_waypoint(&self.router, hover);
                 if self.router.config.area_mode
                     && !self.route.is_closed_area()

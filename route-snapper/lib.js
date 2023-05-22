@@ -216,6 +216,7 @@ export class RouteSnapper {
       this.inner.setConfig({
         avoid_doubling_back: true,
         area_mode: true,
+        extend_route: false,
       });
     }
 
@@ -264,6 +265,12 @@ export class RouteSnapper {
     </div>
     <div>
       <label>
+        <input type="checkbox" id="extendRoute" />
+        Extend the route
+      </label>
+    </div>
+    <div>
+      <label>
         <input type="checkbox" id="areaMode" />
         Area mode
       </label>
@@ -288,18 +295,23 @@ export class RouteSnapper {
     };
     let avoidDoublingBack = document.getElementById("avoidDoublingBack");
     let areaMode = document.getElementById("areaMode");
+    let extendRoute = document.getElementById("extendRoute");
     avoidDoublingBack.onclick = () => {
       this.inner.setConfig({
         avoid_doubling_back: avoidDoublingBack.checked,
         area_mode: areaMode.checked,
+        extend_route: extendRoute.checked,
       });
       this.#redraw();
     };
+    extendRoute.onclick = avoidDoublingBack.onclick;
     areaMode.onclick = () => {
       avoidDoublingBack.checked = true;
+      extendRoute.checked = true;
       this.inner.setConfig({
         avoid_doubling_back: avoidDoublingBack.checked,
         area_mode: areaMode.checked,
+        extend_route: extendRoute.checked,
       });
       this.#redraw();
     };
@@ -307,6 +319,7 @@ export class RouteSnapper {
     // Sync checkboxes with the tool's current state, from the last time it was used
     let config = JSON.parse(this.inner.getConfig());
     avoidDoublingBack.checked = config.avoid_doubling_back;
+    extendRoute.checked = config.extend_route;
     areaMode.checked = config.area_mode;
   }
 
