@@ -25,7 +25,7 @@ pub struct JsRouteSnapper {
     snap_mode: bool,
 }
 
-#[derive(Default, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 struct Config {
     avoid_doubling_back: bool,
     area_mode: bool,
@@ -154,6 +154,12 @@ impl JsRouteSnapper {
                 error!("Bad input to setConfig: {err}");
             }
         }
+    }
+
+    /// Gets the current configuration in JSON.
+    #[wasm_bindgen(js_name = getConfig)]
+    pub fn get_config(&mut self) -> String {
+        serde_json::to_string_pretty(&self.router.config).unwrap()
     }
 
     #[wasm_bindgen(js_name = toFinalFeature)]

@@ -296,13 +296,18 @@ export class RouteSnapper {
       this.#redraw();
     };
     areaMode.onclick = () => {
-      // TODO Force avoidDoublingBack on too in the controls
+      avoidDoublingBack.checked = true;
       this.inner.setConfig({
-        avoid_doubling_back: true,
+        avoid_doubling_back: avoidDoublingBack.checked,
         area_mode: areaMode.checked,
       });
       this.#redraw();
     };
+
+    // Sync checkboxes with the tool's current state, from the last time it was used
+    let config = JSON.parse(this.inner.getConfig());
+    avoidDoublingBack.checked = config.avoid_doubling_back;
+    areaMode.checked = config.area_mode;
   }
 
   #finishSnapping() {
