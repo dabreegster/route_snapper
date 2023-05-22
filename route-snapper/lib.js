@@ -216,7 +216,7 @@ export class RouteSnapper {
       this.inner.setConfig({
         avoid_doubling_back: true,
         area_mode: true,
-        extend_route: false,
+        extend_route: true,
       });
     }
 
