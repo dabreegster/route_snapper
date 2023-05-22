@@ -234,15 +234,11 @@ export class RouteSnapper {
     this.inner.clearState();
     this.#redraw();
 
-    this.controlDiv.innerHTML = "";
-    let btn = document.createElement("button");
-    btn.innerText = "Route tool";
-    btn.type = "button";
-    btn.onclick = () => {
+    this.controlDiv.innerHTML = `<button type="button" id="start-button">Route tool</button>`;
+    document.getElementById("start-button").onclick = () => {
       this.controlDiv.dispatchEvent(new CustomEvent("activate"));
       this.start();
     };
-    this.controlDiv.appendChild(btn);
   }
 
   // Activate the tool.
@@ -254,54 +250,44 @@ export class RouteSnapper {
 
     this.active = true;
 
-    let btn1 = document.createElement("button");
-    btn1.type = "button";
-    btn1.innerText = "Finish route";
-    btn1.onclick = () => {
+    this.controlDiv.innerHTML = `
+    <div style="display: flex; justify-content: space-evenly;">
+      <button type="button" id="finish-route-button">Finish route</button>
+      <button type="button" id="cancel-button">Cancel</button>
+    </div>
+
+    <div>
+      <label>
+        <input type="checkbox" id="avoidDoublingBack" />
+        Avoid doubling back
+      </label>
+    </div>
+    <div>
+      <label>
+        <input type="checkbox" id="areaMode" />
+        Area mode
+      </label>
+    </div>
+
+    <ul>
+      <li><b>Click</b> green points on the transport network</br>to create snapped routes</li>
+      <li>Hold <b>Shift</b> to draw a point anywhere</li>
+      <li><b>Click and drag</b> any point to move it</li>
+      <li><b>Click</b> a red waypoint to delete it</li>
+      <li>Press <b>Enter</b> to finish route</li>
+      <li>Press <b>Escape</b> to cancel and discard route</li>
+    </ul>
+    `;
+
+    document.getElementById("finish-route-button").onclick = () => {
       this.#finishSnapping();
     };
-
-    let btn2 = document.createElement("button");
-    btn2.type = "button";
-    btn2.innerText = "Cancel";
-    btn2.onclick = () => {
+    document.getElementById("cancel-button").onclick = () => {
       this.controlDiv.dispatchEvent(new CustomEvent("no-new-route"));
       this.stop();
     };
-
-    this.controlDiv.innerHTML = "";
-    let buttons = document.createElement("div");
-    buttons.style = "display: flex; justify-content: space-evenly;";
-    buttons.appendChild(btn1);
-    buttons.appendChild(btn2);
-    this.controlDiv.appendChild(buttons);
-
-    let avoidDoublingBack = document.createElement("input");
-    avoidDoublingBack.type = "checkbox";
-    avoidDoublingBack.id = "avoidDoublingBack";
-
-    let avoidDoublingBackLabel = document.createElement("label");
-    avoidDoublingBackLabel.innerText = "Avoid doubling back";
-    avoidDoublingBackLabel.for = avoidDoublingBack.id;
-
-    let areaMode = document.createElement("input");
-    areaMode.type = "checkbox";
-    areaMode.id = "areaMode";
-
-    let areaModelabel = document.createElement("label");
-    areaModelabel.innerText = "Area mode";
-    areaModelabel.for = areaMode.id;
-
-    let checkboxDiv1 = document.createElement("div");
-    checkboxDiv1.appendChild(avoidDoublingBack);
-    checkboxDiv1.appendChild(avoidDoublingBackLabel);
-    this.controlDiv.append(checkboxDiv1);
-
-    let checkboxDiv2 = document.createElement("div");
-    checkboxDiv2.appendChild(areaMode);
-    checkboxDiv2.appendChild(areaModelabel);
-    this.controlDiv.append(checkboxDiv2);
-
+    let avoidDoublingBack = document.getElementById("avoidDoublingBack");
+    let areaMode = document.getElementById("areaMode");
     avoidDoublingBack.onclick = () => {
       this.inner.setConfig({
         avoid_doubling_back: avoidDoublingBack.checked,
@@ -309,7 +295,6 @@ export class RouteSnapper {
       });
       this.#redraw();
     };
-
     areaMode.onclick = () => {
       // TODO Force avoidDoublingBack on too in the controls
       this.inner.setConfig({
@@ -318,17 +303,6 @@ export class RouteSnapper {
       });
       this.#redraw();
     };
-
-    const instructions = document.createElement("ul");
-    instructions.innerHTML =
-      `<li><b>Click</b> green points on the transport network</br>to create snapped routes</li>` +
-      `<li>Hold <b>Shift</b> to draw a point anywhere</li>` +
-      `<li><b>Click and drag</b> any point to move it</li>` +
-      `<li><b>Click</b> a red waypoint to delete it</li>` +
-      `<li>Press <b>Enter</b> to finish route</li>`;
-    `<li>Press <b>Escape</b> to cancel and discard route</li>`;
-
-    this.controlDiv.appendChild(instructions);
   }
 
   #finishSnapping() {
