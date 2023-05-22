@@ -14,6 +14,11 @@ export class JsRouteSnapper {
 */
   setConfig(input: any): void;
 /**
+* Gets the current configuration in JSON.
+* @returns {string}
+*/
+  getConfig(): string;
+/**
 * @returns {string | undefined}
 */
   toFinalFeature(): string | undefined;
@@ -59,6 +64,7 @@ export interface InitOutput {
   readonly __wbg_jsroutesnapper_free: (a: number) => void;
   readonly jsroutesnapper_new: (a: number, b: number, c: number) => void;
   readonly jsroutesnapper_setConfig: (a: number, b: number) => void;
+  readonly jsroutesnapper_getConfig: (a: number, b: number) => void;
   readonly jsroutesnapper_toFinalFeature: (a: number, b: number) => void;
   readonly jsroutesnapper_renderGeojson: (a: number, b: number) => void;
   readonly jsroutesnapper_setSnapMode: (a: number, b: number) => void;

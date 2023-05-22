@@ -253,6 +253,22 @@ export class JsRouteSnapper {
         wasm.jsroutesnapper_setConfig(this.ptr, addHeapObject(input));
     }
     /**
+    * Gets the current configuration in JSON.
+    * @returns {string}
+    */
+    getConfig() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.jsroutesnapper_getConfig(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_free(r0, r1);
+        }
+    }
+    /**
     * @returns {string | undefined}
     */
     toFinalFeature() {
