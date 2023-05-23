@@ -103,6 +103,16 @@ export class RouteSnapper {
         this.#redraw();
       });
 
+      this.map.on("dblclick", () => {
+        if (!this.active) {
+          return;
+        }
+        // Treat it like a click, to possibly add a final point
+        this.inner.onClick();
+        // But then finish
+        this.#finishSnapping();
+      });
+
       this.map.on("dragstart", (e) => {
         if (!this.active) {
           return;
@@ -281,7 +291,7 @@ export class RouteSnapper {
       <li>Hold <b>Shift</b> to draw a point anywhere</li>
       <li><b>Click and drag</b> any point to move it</li>
       <li><b>Click</b> a red waypoint to delete it</li>
-      <li>Press <b>Enter</b> to finish route</li>
+      <li>Press <b>Enter</b> or <b>double click</b> to finish route</li>
       <li>Press <b>Escape</b> to cancel and discard route</li>
     </ul>
     `;
