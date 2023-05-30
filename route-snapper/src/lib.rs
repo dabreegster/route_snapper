@@ -27,8 +27,13 @@ pub struct JsRouteSnapper {
 
 #[derive(Default, Serialize, Deserialize)]
 struct Config {
+    /// With multiple intermediate waypoints, try to avoid routing on edges already used in a
+    /// previous portion of the path. This is best-effort.
     avoid_doubling_back: bool,
+    /// Generate a route that starts and ends in the same place.
     area_mode: bool,
+    /// If false, the user can only drag waypoints after specifying the start and end of the route.
+    /// If true, they can keep clicking to extend the end of the route.
     extend_route: bool,
 }
 
