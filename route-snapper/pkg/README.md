@@ -109,7 +109,8 @@ There are a few methods on the `RouteSnapper` object you can call:
 
 You must specify `boxZoom: false` when creating your
 [Map](https://maplibre.org/maplibre-gl-js-docs/api/map/), or shift-click for
-drawing freehand points won't work.
+drawing freehand points won't work. Likewise, you need to disable
+`doubleClickZoom` so that you can double click to end a route.
 
 ### Using with mapbox-gl-draw
 

@@ -103,6 +103,16 @@ export class RouteSnapper {
         this.#redraw();
       });
 
+      this.map.on("dblclick", () => {
+        if (!this.active) {
+          return;
+        }
+        // Treat it like a click, to possibly add a final point
+        this.inner.onClick();
+        // But then finish
+        this.#finishSnapping();
+      });
+
       this.map.on("dragstart", (e) => {
         if (!this.active) {
           return;
@@ -216,6 +226,7 @@ export class RouteSnapper {
       this.inner.setConfig({
         avoid_doubling_back: true,
         area_mode: true,
+        extend_route: true,
       });
     }
 
@@ -264,6 +275,12 @@ export class RouteSnapper {
     </div>
     <div>
       <label>
+        <input type="checkbox" id="extendRoute" />
+        Extend the route
+      </label>
+    </div>
+    <div>
+      <label>
         <input type="checkbox" id="areaMode" />
         Area mode
       </label>
@@ -274,7 +291,7 @@ export class RouteSnapper {
       <li>Hold <b>Shift</b> to draw a point anywhere</li>
       <li><b>Click and drag</b> any point to move it</li>
       <li><b>Click</b> a red waypoint to delete it</li>
-      <li>Press <b>Enter</b> to finish route</li>
+      <li>Press <b>Enter</b> or <b>double click</b> to finish route</li>
       <li>Press <b>Escape</b> to cancel and discard route</li>
     </ul>
     `;
@@ -288,18 +305,23 @@ export class RouteSnapper {
     };
     let avoidDoublingBack = document.getElementById("avoidDoublingBack");
     let areaMode = document.getElementById("areaMode");
+    let extendRoute = document.getElementById("extendRoute");
     avoidDoublingBack.onclick = () => {
       this.inner.setConfig({
         avoid_doubling_back: avoidDoublingBack.checked,
         area_mode: areaMode.checked,
+        extend_route: extendRoute.checked,
       });
       this.#redraw();
     };
+    extendRoute.onclick = avoidDoublingBack.onclick;
     areaMode.onclick = () => {
       avoidDoublingBack.checked = true;
+      extendRoute.checked = true;
       this.inner.setConfig({
         avoid_doubling_back: avoidDoublingBack.checked,
         area_mode: areaMode.checked,
+        extend_route: extendRoute.checked,
       });
       this.#redraw();
     };
@@ -307,6 +329,7 @@ export class RouteSnapper {
     // Sync checkboxes with the tool's current state, from the last time it was used
     let config = JSON.parse(this.inner.getConfig());
     avoidDoublingBack.checked = config.avoid_doubling_back;
+    extendRoute.checked = config.extend_route;
     areaMode.checked = config.area_mode;
   }
 
