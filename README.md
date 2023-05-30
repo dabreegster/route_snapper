@@ -2,7 +2,7 @@
 
 [![NPM](https://img.shields.io/npm/v/route-snapper)](https://www.npmjs.com/package/route-snapper)
 
-This plugin lets you draw routes in MapLibre GL that snap to some network (streets, usually). Unlike similar plugins that send a request to a remote API for routing, this one does the routing client-side. This works by loading a pre-built file covering a fixed area and calculating the routes locally.
+This plugin lets you draw routes and polygon areas in MapLibre GL that snap to some network (streets, usually). Unlike similar plugins that send a request to a remote API for routing, this one does the routing client-side. This works by loading a pre-built file covering a fixed area and calculating the routes locally.
 
 [Demo](https://dabreegster.github.io/route_snapper)
 
@@ -34,4 +34,6 @@ This project follows the [Rust code of conduct](https://www.rust-lang.org/polici
 
 ## Related work
 
-This tool started life in fall 2021 through [Ungap the Map](https://a-b-street.github.io/docs/software/ungap_the_map/index.html), for sketching potential cycle lanes along existing roads. It used a custom UI and map rendering library built on top of OpenGL. A year later, the idea was adapted to work in [ATIP](https://github.com/acteng/atip), using MapLibre GL. The functionality for dragging waypoints is partly inspired by [Felt](https://felt.com), Google Maps, and similar products. To my knowledge, this is the first one with client-side routing.
+This tool started life in fall 2021 through [Ungap the Map](https://a-b-street.github.io/docs/software/ungap_the_map/index.html), for sketching potential cycle lanes along existing roads. It used a custom UI and map rendering library built on top of OpenGL. A year later, the idea was adapted to work in [ATIP](https://github.com/acteng/atip), using MapLibre GL. The functionality for dragging waypoints is partly inspired by [Felt](https://felt.com), Google Maps, and similar products.
+
+Other projects with client-side routing: [ngraph.path](https://github.com/anvaka/ngraph.path.demo)
