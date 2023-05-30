@@ -7,6 +7,8 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+## 0.1.14
+
 - Fix bugs where built-in controls can get out-of-sync with current settings
 - By default, don't keep drawing more points to the end of the route
 - Fix bug that created a new waypoint when clicking (and not dragging) an
