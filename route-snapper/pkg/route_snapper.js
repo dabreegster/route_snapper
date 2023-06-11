@@ -249,8 +249,14 @@ export class JsRouteSnapper {
     * Updates configuration and recalculates paths. The caller should redraw.
     * @param {any} input
     */
-    setConfig(input) {
-        wasm.jsroutesnapper_setConfig(this.ptr, addHeapObject(input));
+    setRouteConfig(input) {
+        wasm.jsroutesnapper_setRouteConfig(this.ptr, addHeapObject(input));
+    }
+    /**
+    * Enables area mode, where the snapper produces polygons.
+    */
+    setAreaMode() {
+        wasm.jsroutesnapper_setAreaMode(this.ptr);
     }
     /**
     * Gets the current configuration in JSON.

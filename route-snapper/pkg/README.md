@@ -94,11 +94,11 @@ There are a few methods on the `RouteSnapper` object you can call:
 - `isActive()` returns true when the tool is active and interpreting mouse events
 - `tearDown()` cleans up the internal sources and layers added to the map.
   (Note it doesn't yet clean up event listeners!)
-- `setConfig` to change some settings
+- `setRouteConfig` to change some settings for drawing routes
   - `avoid_doubling_back` (disabled by default): When possible, avoid edges
     already crossed for handling intermediate waypoints
-  - `area_mode` (disabled by default): Produce closed polygons instead of
-    line-strings.
+  - `extend_route` (disabled by default): The user can keep clicking to extend the end of the route. When false, the user can only draw two endpoints, then drag intermediate points.
+- `setAreaMode()` changes to producing polygons instead of line-strings.
 - `editExisting` to restart the tool with a previously created route. See notes
   in [the example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.html)
   about how to call it.

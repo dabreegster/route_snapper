@@ -221,13 +221,8 @@ export class RouteSnapper {
 
     this.start();
 
-    // Warning, must do this!
     if (feature.geometry.type == "Polygon") {
-      this.inner.setConfig({
-        avoid_doubling_back: true,
-        area_mode: true,
-        extend_route: true,
-      });
+      this.inner.setAreaMode();
     }
 
     this.inner.editExisting(feature.properties.waypoints);
@@ -307,22 +302,24 @@ export class RouteSnapper {
     let areaMode = document.getElementById("areaMode");
     let extendRoute = document.getElementById("extendRoute");
     avoidDoublingBack.onclick = () => {
-      this.inner.setConfig({
+      this.inner.setRouteConfig({
         avoid_doubling_back: avoidDoublingBack.checked,
-        area_mode: areaMode.checked,
         extend_route: extendRoute.checked,
       });
       this.#redraw();
     };
     extendRoute.onclick = avoidDoublingBack.onclick;
     areaMode.onclick = () => {
-      avoidDoublingBack.checked = true;
-      extendRoute.checked = true;
-      this.inner.setConfig({
-        avoid_doubling_back: avoidDoublingBack.checked,
-        area_mode: areaMode.checked,
-        extend_route: extendRoute.checked,
-      });
+      if (areaMode.checked) {
+        avoidDoublingBack.checked = true;
+        extendRoute.checked = true;
+        this.inner.setAreaMode();
+      } else {
+        this.inner.setRouteConfig({
+          avoid_doubling_back: avoidDoublingBack.checked,
+          extend_route: extendRoute.checked,
+        });
+      }
       this.#redraw();
     };
 

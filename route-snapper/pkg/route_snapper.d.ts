@@ -12,7 +12,11 @@ export class JsRouteSnapper {
 * Updates configuration and recalculates paths. The caller should redraw.
 * @param {any} input
 */
-  setConfig(input: any): void;
+  setRouteConfig(input: any): void;
+/**
+* Enables area mode, where the snapper produces polygons.
+*/
+  setAreaMode(): void;
 /**
 * Gets the current configuration in JSON.
 * @returns {string}
@@ -63,7 +67,8 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_jsroutesnapper_free: (a: number) => void;
   readonly jsroutesnapper_new: (a: number, b: number, c: number) => void;
-  readonly jsroutesnapper_setConfig: (a: number, b: number) => void;
+  readonly jsroutesnapper_setRouteConfig: (a: number, b: number) => void;
+  readonly jsroutesnapper_setAreaMode: (a: number) => void;
   readonly jsroutesnapper_getConfig: (a: number, b: number) => void;
   readonly jsroutesnapper_toFinalFeature: (a: number, b: number) => void;
   readonly jsroutesnapper_renderGeojson: (a: number, b: number) => void;

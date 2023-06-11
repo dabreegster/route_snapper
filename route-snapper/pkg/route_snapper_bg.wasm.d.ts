@@ -3,7 +3,8 @@
 export const memory: WebAssembly.Memory;
 export function __wbg_jsroutesnapper_free(a: number): void;
 export function jsroutesnapper_new(a: number, b: number, c: number): void;
-export function jsroutesnapper_setConfig(a: number, b: number): void;
+export function jsroutesnapper_setRouteConfig(a: number, b: number): void;
+export function jsroutesnapper_setAreaMode(a: number): void;
 export function jsroutesnapper_getConfig(a: number, b: number): void;
 export function jsroutesnapper_toFinalFeature(a: number, b: number): void;
 export function jsroutesnapper_renderGeojson(a: number, b: number): void;
