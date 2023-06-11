@@ -30,11 +30,14 @@ struct Config {
     /// With multiple intermediate waypoints, try to avoid routing on edges already used in a
     /// previous portion of the path. This is best-effort.
     avoid_doubling_back: bool,
-    /// Generate a route that starts and ends in the same place.
-    area_mode: bool,
     /// If false, the user can only drag waypoints after specifying the start and end of the route.
     /// If true, they can keep clicking to extend the end of the route.
     extend_route: bool,
+
+    /// Generate a route that starts and ends in the same place. Has to be set using `setAreaMode`,
+    /// but `getConfig` will show this.
+    #[serde(skip_deserializing)]
+    area_mode: bool,
 }
 
 struct Router {
@@ -149,17 +152,29 @@ impl JsRouteSnapper {
     }
 
     /// Updates configuration and recalculates paths. The caller should redraw.
-    #[wasm_bindgen(js_name = setConfig)]
-    pub fn set_config(&mut self, input: JsValue) {
+    #[wasm_bindgen(js_name = setRouteConfig)]
+    pub fn set_route_config(&mut self, input: JsValue) {
         match serde_wasm_bindgen::from_value(input) {
             Ok(config) => {
                 self.router.config = config;
+                assert!(!self.router.config.area_mode);
                 self.route.recalculate_full_path(&self.router);
             }
             Err(err) => {
-                error!("Bad input to setConfig: {err}");
+                error!("Bad input to setRouteConfig: {err}");
             }
         }
+    }
+
+    /// Enables area mode, where the snapper produces polygons.
+    #[wasm_bindgen(js_name = setAreaMode)]
+    pub fn set_area_mode(&mut self) {
+        self.router.config = Config {
+            avoid_doubling_back: true,
+            extend_route: true,
+            area_mode: true,
+        };
+        self.route.recalculate_full_path(&self.router);
     }
 
     /// Gets the current configuration in JSON.

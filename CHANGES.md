@@ -7,6 +7,8 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+- Split `setConfig` into `setRouteConfig` and `setAreaMode` to prevent incorrect configuration
+
 ## 0.1.14
 
 - Fix bugs where built-in controls can get out-of-sync with current settings
