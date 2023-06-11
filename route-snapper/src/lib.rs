@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate log;
 
+#[cfg(test)]
+mod tests;
+
 use std::collections::{BTreeMap, HashSet};
 
 use geojson::Feature;
@@ -99,7 +102,7 @@ const BACKWARDS: Direction = false;
 #[derive(Clone, Copy, PartialEq, Debug)]
 struct DirectedEdge(EdgeID, Direction);
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum Mode {
     Neutral,
     Hovering(Waypoint),
@@ -112,9 +115,11 @@ enum Mode {
 impl JsRouteSnapper {
     #[wasm_bindgen(constructor)]
     pub fn new(map_bytes: &[u8]) -> Result<JsRouteSnapper, JsValue> {
-        // Panics shouldn't happen, but if they do, console.log them.
-        console_error_panic_hook::set_once();
-        console_log::init_with_level(log::Level::Info).unwrap();
+        if !cfg!(test) {
+            console_log::init_with_level(log::Level::Info).unwrap();
+            // Panics shouldn't happen, but if they do, console.log them.
+            console_error_panic_hook::set_once();
+        }
 
         info!("Got {} bytes, deserializing", map_bytes.len());
 
