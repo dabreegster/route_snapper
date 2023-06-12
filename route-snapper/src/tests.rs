@@ -63,18 +63,38 @@ fn test_route_extend() {
         vec![WAYPT1, WAYPT2, WAYPT3, WAYPT4]
     );
 
-    // Clicking an existing waypoint will still delete it
+    // TODO Drag
+}
+
+#[test]
+fn test_route_extend_then_delete() {
+    let map_bytes = std::fs::read("../examples/southwark.bin").unwrap();
+    let mut snapper = JsRouteSnapper::new(&map_bytes).unwrap();
+    // setRouteConfig is a WASM API awkward to call; just set directly
+    snapper.router.config.extend_route = true;
+
+    // Add many waypoints
+    for waypt in [WAYPT1, WAYPT2, WAYPT3, WAYPT4] {
+        must_mouseover_waypt(&mut snapper, waypt);
+        snapper.on_click();
+    }
+    assert_eq!(
+        snapper.route.waypoints,
+        vec![WAYPT1, WAYPT2, WAYPT3, WAYPT4]
+    );
+
+    // Clicking an existing waypoint will delete it
     must_mouseover_waypt(&mut snapper, WAYPT2);
     snapper.on_click();
     assert_eq!(snapper.route.waypoints, vec![WAYPT1, WAYPT3, WAYPT4]);
-
-    // TODO Drag
 }
 
 #[test]
 fn test_route_dont_extend() {
     let map_bytes = std::fs::read("../examples/southwark.bin").unwrap();
     let mut snapper = JsRouteSnapper::new(&map_bytes).unwrap();
+    // setRouteConfig is a WASM API awkward to call; just set directly
+    snapper.router.config.extend_route = false;
 
     // The first two waypoints work normally
     must_mouseover_waypt(&mut snapper, WAYPT1);
