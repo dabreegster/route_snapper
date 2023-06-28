@@ -330,6 +330,11 @@ export class RouteSnapper {
     areaMode.checked = config.area_mode;
   }
 
+  /// Render the graph as GeoJSON points and line-strings, for debugging.
+  debugRenderGraph() {
+    return this.inner.debugRenderGraph();
+  }
+
   #finishSnapping() {
     // Update the source-of-truth in drawControls
     const rawJSON = this.inner.toFinalFeature();

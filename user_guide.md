@@ -104,6 +104,7 @@ There are a few methods on the `RouteSnapper` object you can call:
   about how to call it.
 - `start` activates the tool. It has no effect if the tool is already started.
 - `stop` deactivates the tool and clears all state
+- `debugRenderGraph` returns GeoJSON points and line-strings to debug the graph used for routing.
 
 ### MapLibre gotchas
 

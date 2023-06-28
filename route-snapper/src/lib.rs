@@ -542,6 +542,25 @@ impl JsRouteSnapper {
 
         Ok(())
     }
+
+    /// Render the graph as GeoJSON points and line-strings, for debugging.
+    #[wasm_bindgen(js_name = debugRenderGraph)]
+    pub fn debug_render_graph(&self) -> String {
+        let mut features = Vec::new();
+        for pt in &self.router.map.nodes {
+            features.push(Feature::from(
+                pt.to_geojson(Some(&self.router.map.gps_bounds)),
+            ));
+        }
+        for edge in &self.router.map.edges {
+            features.push(Feature::from(
+                edge.geometry.to_geojson(Some(&self.router.map.gps_bounds)),
+            ));
+        }
+        let gj =
+            geojson::GeoJson::from(features.into_iter().collect::<geojson::FeatureCollection>());
+        serde_json::to_string_pretty(&gj).unwrap()
+    }
 }
 
 impl JsRouteSnapper {
