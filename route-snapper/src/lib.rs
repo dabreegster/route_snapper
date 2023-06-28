@@ -5,6 +5,7 @@ extern crate log;
 mod tests;
 
 use std::collections::{BTreeMap, HashSet};
+use std::sync::Once;
 
 use geojson::Feature;
 use geom::{Distance, HashablePt2D, LonLat, PolyLine, Pt2D};
@@ -15,6 +16,8 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use route_snapper_graph::{EdgeID, NodeID, RouteSnapperMap};
+
+static START: Once = Once::new();
 
 type Graph = DiGraphMap<NodeID, DirectedEdge>;
 
@@ -116,7 +119,9 @@ impl JsRouteSnapper {
     #[wasm_bindgen(constructor)]
     pub fn new(map_bytes: &[u8]) -> Result<JsRouteSnapper, JsValue> {
         if !cfg!(test) {
-            console_log::init_with_level(log::Level::Info).unwrap();
+            START.call_once(|| {
+                console_log::init_with_level(log::Level::Info).unwrap();
+            });
             // Panics shouldn't happen, but if they do, console.log them.
             console_error_panic_hook::set_once();
         }

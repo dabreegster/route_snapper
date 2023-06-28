@@ -7,7 +7,7 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
-- Add `debugRenderGraph` API
+- Add `debugRenderGraph` and `changeGraph` APIs
 - Split `setConfig` into `setRouteConfig` and `setAreaMode` to prevent incorrect configuration
 
 ## 0.1.14
