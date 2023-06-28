@@ -166,6 +166,13 @@ export class RouteSnapper {
     });
   }
 
+  // Change the underlying graph after initially creating RouteSnapper.
+  changeGraph(graphBytes) {
+    console.time("Deserialize and setup JsRouteSnapper with new graph");
+    this.inner = new JsRouteSnapper(graphBytes);
+    console.timeEnd("Deserialize and setup JsRouteSnapper with new graph");
+  }
+
   isActive() {
     return this.active;
   }
