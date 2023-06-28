@@ -61,6 +61,11 @@
           Stop (not part of the main control)
         </button>
       </div>
+      <div class="row">
+        <button type="button" id="debugGraph">
+          Download debug graph as GeoJSON
+        </button>
+      </div>
       <div class="row">Click an existing route to edit</div>
       <div id="status">Inactive</div>
     </div>
@@ -72,9 +77,9 @@
     <script type="module">
       // Use the locally built version
       import {
+        fetchWithProgress,
         init,
         RouteSnapper,
-        fetchWithProgress,
       } from "./route-snapper/pkg/lib.js";
 
       // Comment the above and use the published NPM version instead:
@@ -182,6 +187,20 @@
         };
         document.getElementById("stop").onclick = () => {
           routeSnapper?.stop();
+        };
+        document.getElementById("debugGraph").onclick = () => {
+          let gj = routeSnapper?.debugRenderGraph();
+
+          // Download to a file
+          var element = document.createElement("a");
+          element.setAttribute(
+            "href",
+            "data:text/plain;charset=utf-8, " + encodeURIComponent(gj)
+          );
+          element.setAttribute("download", "route-snapper-graph.geojson");
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
         };
 
         map.on("click", (e) => {

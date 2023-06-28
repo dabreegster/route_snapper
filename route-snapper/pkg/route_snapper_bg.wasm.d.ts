@@ -15,6 +15,7 @@ export function jsroutesnapper_onDragStart(a: number): number;
 export function jsroutesnapper_onMouseUp(a: number): number;
 export function jsroutesnapper_clearState(a: number): void;
 export function jsroutesnapper_editExisting(a: number, b: number, c: number): void;
+export function jsroutesnapper_debugRenderGraph(a: number, b: number): void;
 export function __wbindgen_malloc(a: number): number;
 export function __wbindgen_realloc(a: number, b: number, c: number): number;
 export function __wbindgen_add_to_stack_pointer(a: number): number;
