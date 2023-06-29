@@ -274,7 +274,7 @@
               // Assume nodes (Points) are first.
               map.jumpTo({ center: gj.features[0].geometry.coordinates });
             } catch (err) {
-              console.log(`Couldn't warp to new graph: {err}`);
+              console.log(`Couldn't warp to new graph: ${err}`);
             }
           };
           reader.readAsArrayBuffer(file);
