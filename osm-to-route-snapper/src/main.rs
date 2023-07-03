@@ -54,7 +54,16 @@ fn streets_to_snapper(streets: &osm2streets::StreetNetwork) -> RouteSnapperMap {
         if i.roads.iter().all(|r| streets.roads[r].is_light_rail()) {
             continue;
         }
-        map.nodes.push(i.polygon.center());
+
+        // The intersection's calculated polygon might not match up with road reference lines.
+        // Instead use an endpoint of any connecting road's reference line.
+        let road = &streets.roads[&i.roads[0]];
+        map.nodes.push(if road.src_i == i.id {
+            road.reference_line.first_pt()
+        } else {
+            road.reference_line.last_pt()
+        });
+
         id_lookup.insert(i.id, NodeID(id_lookup.len() as u32));
     }
     for r in streets.roads.values() {
