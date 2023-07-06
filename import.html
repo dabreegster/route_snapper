@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Create route-snapper graph files from OSM</title>
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <script src="https://unpkg.com/maplibre-gl@3.1.0/dist/maplibre-gl.js"></script>
+    <link
+      href="https://unpkg.com/maplibre-gl@3.1.0/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+
+      #top-left {
+        position: absolute;
+        z-index: 5;
+        padding: 20px;
+        max-width: 400px;
+        background-color: white;
+      }
+
+      .maplibregl-ctrl-group button {
+        width: 70px;
+        height: 70px;
+      }
+
+      .mapbox-gl-draw_polygon {
+        background-size: 80px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="top-left">
+      <p>
+        Use the polygon tool on the top-right to select an area to import.
+        (Double click or press enter to finish.) Wait a bit, then your browser
+        should download a file. Use "Change graph file" in the
+        <a href="index.html">main tool</a> to load it.
+      </p>
+      <p>
+        Thanks to
+        <a
+          href="https://wiki.openstreetmap.org/wiki/Overpass_API"
+          target="_blank"
+          >Overpass</a
+        >
+        for making OpenStreetMap extracts easy!
+      </p>
+      <p id="status"></p>
+    </div>
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.1/mapbox-gl-draw.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.1/mapbox-gl-draw.css"
+      type="text/css"
+    />
+    <div id="map"></div>
+
+    <script type="module">
+      import init, {
+        convert,
+      } from "./osm-to-route-snapper/pkg/osm_to_route_snapper.js";
+
+      await init();
+
+      let map = new maplibregl.Map({
+        container: "map",
+        style:
+          "https://api.maptiler.com/maps/streets/style.json?key=MZEJTanw3WpxRvt7qDfo",
+        hash: true,
+      });
+
+      // TODO Hack from https://github.com/maplibre/maplibre-gl-js/issues/2601.
+      MapboxDraw.constants.classes.CONTROL_BASE = "maplibregl-ctrl";
+      MapboxDraw.constants.classes.CONTROL_PREFIX = "maplibregl-ctrl-";
+      MapboxDraw.constants.classes.CONTROL_GROUP = "maplibregl-ctrl-group";
+      let draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+          polygon: true,
+        },
+      });
+      map.addControl(draw);
+
+      map.on("draw.create", importPolygon);
+
+      async function importPolygon(e) {
+        let polygon = e.features[0];
+        draw.deleteAll();
+        let status = document.getElementById("status");
+
+        status.textContent = "Fetching from Overpass";
+        let resp = await fetch(overpassQueryForPolygon(polygon));
+        let osmXml = await resp.text();
+
+        status.textContent = `Importing OSM data (${osmXml.length} bytes) with osm2streets`;
+        let bytes = convert(osmXml, JSON.stringify(polygon));
+        status.textContent = `Graph file (${bytes.length} bytes) done, downloading`;
+        downloadGeneratedFile(bytes, "route-snapper-graph.bin");
+      }
+
+      // Construct a query to extract all XML data in the polygon clip. See
+      // https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL
+      function overpassQueryForPolygon(feature) {
+        let filter = 'poly:"';
+        for (let [lng, lat] of feature.geometry.coordinates[0]) {
+          filter += `${lat} ${lng} `;
+        }
+        filter = filter.slice(0, -1) + '"';
+        let query = `(nwr(${filter}); node(w)->.x; <;); out meta;`;
+        return `https://overpass-api.de/api/interpreter?data=${query}`;
+      }
+
+      function downloadGeneratedFile(bytes, filename) {
+        let blob = new Blob([bytes], { type: "application/octet-stream" });
+        let url = URL.createObjectURL(blob);
+
+        let link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.style.display = "none";
+
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    </script>
+  </body>
+</html>
