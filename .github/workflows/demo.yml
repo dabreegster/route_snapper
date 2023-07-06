@@ -17,11 +17,15 @@ jobs:
         run: |
                 wasm-pack build --release --target web route-snapper
                 cp route-snapper/lib.js route-snapper/pkg
+                wasm-pack build --release --target web osm-to-route-snapper
 
                 mkdir -p publish/route-snapper
-                cp examples/index.html examples/southwark.bin publish
+                mkdir -p publish/osm-to-route-snapper
+                cp examples/*.html examples/southwark.bin publish
                 cp -Rv route-snapper/pkg publish/route-snapper
+                cp -Rv osm-to-route-snapper/pkg publish/osm-to-route-snapper/
                 rm -f publish/route-snapper/pkg/.gitignore
+                rm -f publish/osm-to-route-snapper/pkg/.gitignore
 
       - name: Publish
         uses: peaceiris/actions-gh-pages@v3
