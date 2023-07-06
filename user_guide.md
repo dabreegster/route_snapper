@@ -8,11 +8,13 @@ that has coordinates defined for the edges.
 
 A common use case is routing along a street network. You can create an example
 file from OpenStreetMap data using
-[osm2streets](https://github.com/a-b-street/osm2streets). You need an
-`.osm.xml` file, and optionally a GeoJSON file with one polygon representing
-the boundary of your area.
+[osm2streets](https://github.com/a-b-street/osm2streets). The easiest way to do
+this for smaller areas is [in your web
+browser](https://dabreegster.github.io/route_snapper/import.html).
 
-You'll need to [install Rust](https://www.rust-lang.org/tools/install) to run this:
+For larger areas, you need an `.osm.xml` file, and optionally a GeoJSON file
+with one polygon representing the boundary of your area. You'll need to
+[install Rust](https://www.rust-lang.org/tools/install) to run this:
 
 ```
 cd osm-to-route-snapper
