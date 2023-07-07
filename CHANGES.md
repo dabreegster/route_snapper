@@ -7,6 +7,7 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+- `fetchWithProgress` now takes a callback to return the progress as a percentage to the user.
 - Add `debugRenderGraph` and `changeGraph` APIs
 - Split `setConfig` into `setRouteConfig` and `setAreaMode` to prevent incorrect configuration
 

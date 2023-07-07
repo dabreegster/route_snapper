@@ -48,16 +48,17 @@ import {
 
 To initialize the WASM library, you have to `await init()`.
 
-You'll need to get the raw graph file you built. You can do this however you like, such as using [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch). For convenience, the JS library includes a helper function `fetchWithProgress` that draws a progress bar to a `div` element you pass in.
+You'll need to get the raw graph file you built. You can do this however you like, such as using [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch). For convenience, the JS library includes a helper function `fetchWithProgress` that accepts a callback to return the progress towards your result being loaded.
 
 To create the route snapper, you need a MapLibre map (it can be initialized or not), the graph, and a `div` element for the plugin to render its controls. From the [example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.html), it might look like this:
 
 ```
 await init();
+let progressPercentage = 0;
 
 const graphBytes = await fetchWithProgress(
   url,
-  document.getElementById("snap-progress")
+  ((progress) => progressPerecentage = progress)
 );
 let routeSnapper = new RouteSnapper(
   map,

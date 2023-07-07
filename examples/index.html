@@ -243,7 +243,12 @@
 
       await init();
 
+      const progressUpdateCallback = (progress) => {
+        document.getElementById("snap-progress").innerText = `${progress}%`; 
+      }
+
       const url = `southwark.bin`;
+      let progressPerecentage = 0;
       try {
         const graphBytes = await fetchWithProgress(
           url,
