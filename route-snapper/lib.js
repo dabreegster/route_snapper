@@ -364,7 +364,7 @@ export class RouteSnapper {
   }
 }
 
-export async function fetchWithProgress(url, setProgress=() => {}) {
+export async function fetchWithProgress(url, setProgress = () => {}) {
   const response = await fetch(url);
   const reader = response.body.getReader();
 
