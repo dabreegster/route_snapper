@@ -364,7 +364,7 @@ export class RouteSnapper {
   }
 }
 
-export async function fetchWithProgress(url, progressBar) {
+export async function fetchWithProgress(url, setProgress = () => {}) {
   const response = await fetch(url);
   const reader = response.body.getReader();
 
@@ -382,7 +382,7 @@ export async function fetchWithProgress(url, progressBar) {
     receivedLength += value.length;
 
     const percent = (100.0 * receivedLength) / contentLength;
-    progressBar.style = `background: linear-gradient(to right, red ${percent}%, transparent 0);`;
+    setProgress(percent);
   }
 
   let allChunks = new Uint8Array(receivedLength);
