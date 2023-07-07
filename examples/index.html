@@ -77,7 +77,6 @@
     </div>
     <div id="map"></div>
     <div id="snap-tool">
-      <!-- TODO the text should be fixed, and the progress bar float -->
       <div id="snap-progress">Route tool loading...</div>
     </div>
     <script type="module">
@@ -244,16 +243,12 @@
       await init();
 
       const progressUpdateCallback = (progress) => {
-        document.getElementById("snap-progress").innerText = `${progress}%`; 
-      }
+        document.getElementById("snap-progress").innerText = `${progress}%`;
+      };
 
       const url = `southwark.bin`;
-      let progressPerecentage = 0;
       try {
-        const graphBytes = await fetchWithProgress(
-          url,
-          document.getElementById("snap-progress")
-        );
+        const graphBytes = await fetchWithProgress(url, progressUpdateCallback);
         routeSnapper = new RouteSnapper(
           map,
           graphBytes,
