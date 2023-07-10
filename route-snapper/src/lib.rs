@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, HashSet};
 use std::sync::Once;
 
 use geojson::Feature;
-use geom::{Distance, HashablePt2D, LonLat, PolyLine, Pt2D};
+use geom::{Distance, GPSBounds, HashablePt2D, LonLat, PolyLine, Pt2D};
 use petgraph::graphmap::DiGraphMap;
 use rstar::primitives::GeomWithData;
 use rstar::RTree;
@@ -203,8 +203,11 @@ impl JsRouteSnapper {
             }
         } else {
             let pl = self.entire_line_string()?;
-            let mut f = Feature::from(pl.to_geojson(Some(&self.router.map.gps_bounds)));
-            f.set_property("length_meters", pl.length().inner_meters());
+            let length = pl.length();
+            let mut f = Feature::from(geojson::Geometry::new(geojson::Value::LineString(
+                polyline_to_points(pl, &self.router.map.gps_bounds),
+            )));
+            f.set_property("length_meters", length.inner_meters());
             f
         };
 
@@ -217,8 +220,8 @@ impl JsRouteSnapper {
                 .to_gps(&self.router.map.gps_bounds);
             waypoints.push(
                 serde_json::to_value(&RouteWaypoint {
-                    lon: gps.x(),
-                    lat: gps.y(),
+                    lon: trim_lon_lat(gps.x()),
+                    lat: trim_lon_lat(gps.y()),
                     snapped: matches!(waypt, Waypoint::Snapped(_)),
                 })
                 .unwrap(),
@@ -355,6 +358,7 @@ impl JsRouteSnapper {
             }
         }
 
+        // Don't bother trimming coordinate precision here; it's just for temporary rendering
         let obj = geom::geometries_with_properties_to_geojson(result);
         serde_json::to_string_pretty(&obj).unwrap()
     }
@@ -635,14 +639,7 @@ impl JsRouteSnapper {
         let pl = self.entire_line_string()?;
         // We could put the points into Ring, but it's too strict about repeating points. Better to
         // just render something.
-        let outer_ring = pl
-            .into_points()
-            .into_iter()
-            .map(|pt| {
-                let gps = pt.to_gps(&self.router.map.gps_bounds);
-                vec![gps.x(), gps.y()]
-            })
-            .collect();
+        let outer_ring = polyline_to_points(pl, &self.router.map.gps_bounds);
         Some(geojson::Geometry::from(geojson::Value::Polygon(vec![
             outer_ring,
         ])))
@@ -831,4 +828,20 @@ struct RouteWaypoint {
     lon: f64,
     lat: f64,
     snapped: bool,
+}
+
+fn polyline_to_points(pl: PolyLine, gps_bounds: &GPSBounds) -> Vec<Vec<f64>> {
+    pl.into_points()
+        .into_iter()
+        .map(|pt| {
+            let gps = pt.to_gps(gps_bounds);
+            vec![trim_lon_lat(gps.x()), trim_lon_lat(gps.y())]
+        })
+        .collect()
+}
+
+// Per https://datatracker.ietf.org/doc/html/rfc7946#section-11.2, 6 decimal places (10cm) is
+// plenty of precision
+fn trim_lon_lat(x: f64) -> f64 {
+    (x * 10e6).round() / 10e6
 }
