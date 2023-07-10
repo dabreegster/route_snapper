@@ -77,6 +77,11 @@
       </div>
       <div class="row">Click an existing route to edit</div>
       <div id="status">Inactive</div>
+      <div class="row">
+        <button type="button" id="download">
+          Download drawn routes as GeoJSON
+        </button>
+      </div>
     </div>
     <div id="map"></div>
     <div id="snap-tool">
@@ -173,9 +178,13 @@
           e.detail.properties.uid = idCounter++;
           completedRoutes.features.push(e.detail);
           map.getSource("finished-routes").setData(completedRoutes);
-          document.getElementById(
-            "status"
-          ).innerText = `Added new route of length ${e.detail.properties.length_meters} meters`;
+          if (e.detail.geometry.type == "LineString") {
+            document.getElementById(
+              "status"
+            ).innerText = `Added new route of length ${e.detail.properties.length_meters} meters`;
+          } else {
+            document.getElementById("status").innerText = `Added new area`;
+          }
         });
         snapTool.addEventListener("activate", (e) => {
           document.getElementById("status").innerText = "Activated";
@@ -198,17 +207,13 @@
         };
         document.getElementById("debugGraph").onclick = () => {
           let gj = routeSnapper?.debugRenderGraph();
-
-          // Download to a file
-          var element = document.createElement("a");
-          element.setAttribute(
-            "href",
-            "data:text/plain;charset=utf-8, " + encodeURIComponent(gj)
+          downloadGeneratedFile("route-snapper-graph.geojson", gj);
+        };
+        document.getElementById("download").onclick = () => {
+          downloadGeneratedFile(
+            "route-snapper-results.geojson",
+            JSON.stringify(completedRoutes)
           );
-          element.setAttribute("download", "route-snapper-graph.geojson");
-          document.body.appendChild(element);
-          element.click();
-          document.body.removeChild(element);
         };
 
         map.on("click", (e) => {
@@ -260,6 +265,19 @@
       } catch (err) {
         console.log(`Route tool broke: ${err}`);
         document.getElementById("snap-tool").innerHTML = "Failed to load";
+      }
+
+      function downloadGeneratedFile(filename, contents) {
+        // Download to a file
+        var element = document.createElement("a");
+        element.setAttribute(
+          "href",
+          "data:text/plain;charset=utf-8, " + encodeURIComponent(contents)
+        );
+        element.setAttribute("download", filename);
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
       }
 
       document
