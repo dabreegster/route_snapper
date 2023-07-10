@@ -99,6 +99,15 @@
 
       map.on("draw.create", importPolygon);
 
+      // Hack around broken cursors
+      map.on("draw.modechange", (e) => {
+        if (e.mode == "draw_polygon") {
+          map.getCanvas().style.cursor = "crosshair";
+        } else if (e.mode == "simple_select") {
+          map.getCanvas().style.cursor = "inherit";
+        }
+      });
+
       async function importPolygon(e) {
         let polygon = e.features[0];
         draw.deleteAll();
