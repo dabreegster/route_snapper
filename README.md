@@ -36,4 +36,4 @@ This project follows the [Rust code of conduct](https://www.rust-lang.org/polici
 
 This tool started life in fall 2021 through [Ungap the Map](https://a-b-street.github.io/docs/software/ungap_the_map/index.html), for sketching potential cycle lanes along existing roads. It used a custom UI and map rendering library built on top of OpenGL. A year later, the idea was adapted to work in [ATIP](https://github.com/acteng/atip), using MapLibre GL. The functionality for dragging waypoints is partly inspired by [Felt](https://felt.com), Google Maps, and similar products.
 
-Other projects with client-side routing: [ngraph.path](https://github.com/anvaka/ngraph.path.demo)
+Other projects with client-side routing: [ngraph.path](https://github.com/anvaka/ngraph.path.demo), [geojson-path-finder](https://github.com/perliedman/geojson-path-finder)
