@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 geom = { git = "https://github.com/a-b-street/abstreet" }
-serde = "1.0.123"
+serde = "1.0.188"
