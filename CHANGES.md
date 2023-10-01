@@ -7,6 +7,8 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+## 0.1.15
+
 - Output GeoJSON precision is now trimmed to 6 decimal places
 - `fetchWithProgress` now takes a callback to return the progress as a percentage to the user.
 - Add `debugRenderGraph` and `changeGraph` APIs
