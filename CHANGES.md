@@ -7,6 +7,8 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+## 0.2.0
+
 - Include road names in the graph, and auto-populate a route name. (Breaking
   change to the binary graph format!)
 
