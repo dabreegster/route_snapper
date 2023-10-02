@@ -15,6 +15,7 @@ pub struct Edge {
     pub geometry: PolyLine,
     #[serde(skip_serializing, skip_deserializing)]
     pub length: Distance,
+    pub name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

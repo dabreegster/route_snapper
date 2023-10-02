@@ -36,6 +36,7 @@
         z-index: 5;
         padding: 20px;
         background-color: white;
+        max-width: 400px;
       }
       .row {
         margin: 16px 0px;
@@ -181,7 +182,7 @@
           if (e.detail.geometry.type == "LineString") {
             document.getElementById(
               "status"
-            ).innerText = `Added new route of length ${e.detail.properties.length_meters} meters`;
+            ).innerText = `Added new route of length ${e.detail.properties.length_meters} meters and name ${e.detail.properties.route_name}`;
           } else {
             document.getElementById("status").innerText = `Added new area`;
           }

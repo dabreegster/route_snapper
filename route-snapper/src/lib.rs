@@ -4,7 +4,8 @@ extern crate log;
 #[cfg(test)]
 mod tests;
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::fmt::Write;
 use std::sync::Once;
 
 use geojson::Feature;
@@ -208,6 +209,17 @@ impl JsRouteSnapper {
                 polyline_to_points(pl, &self.router.map.gps_bounds),
             )));
             f.set_property("length_meters", length.inner_meters());
+
+            let from_name = match self.route.waypoints[0] {
+                Waypoint::Snapped(node) => self.name_node(node),
+                Waypoint::Free(_) => "???".to_string(),
+            };
+            let to_name = match self.route.waypoints.last().as_ref().unwrap() {
+                Waypoint::Snapped(node) => self.name_node(*node),
+                Waypoint::Free(_) => "???".to_string(),
+            };
+            f.set_property("route_name", format!("Route from {from_name} to {to_name}"));
+
             f
         };
 
@@ -652,6 +664,21 @@ impl JsRouteSnapper {
         }
         .to_hashable()
     }
+
+    fn name_node(&self, id: NodeID) -> String {
+        let edge_names = self
+            .router
+            .graph
+            .edges(id)
+            .map(|(_, _, edge)| {
+                self.router.map.edges[edge.0 .0 as usize]
+                    .name
+                    .clone()
+                    .unwrap_or_else(|| "???".to_string())
+            })
+            .collect::<BTreeSet<_>>();
+        plain_list_names(edge_names)
+    }
 }
 
 impl Route {
@@ -844,4 +871,24 @@ fn polyline_to_points(pl: PolyLine, gps_bounds: &GPSBounds) -> Vec<Vec<f64>> {
 // plenty of precision
 fn trim_lon_lat(x: f64) -> f64 {
     (x * 10e6).round() / 10e6
+}
+
+fn plain_list_names(names: BTreeSet<String>) -> String {
+    let mut s = String::new();
+    let len = names.len();
+    for (idx, n) in names.into_iter().enumerate() {
+        if idx != 0 {
+            if idx == len - 1 {
+                if len == 2 {
+                    write!(s, " and ").unwrap();
+                } else {
+                    write!(s, ", and ").unwrap();
+                }
+            } else {
+                write!(s, ", ").unwrap();
+            }
+        }
+        write!(s, "{}", n).unwrap();
+    }
+    s
 }

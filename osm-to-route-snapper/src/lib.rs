@@ -7,7 +7,11 @@ use route_snapper_graph::{Edge, NodeID, RouteSnapperMap};
 
 /// Convert input OSM XML data and a boundary GeoJSON string (with exactly one polygon) into a
 /// RouteSnapperMap, which can then be serialized and used.
-pub fn convert_osm(input_osm: String, boundary_geojson: Option<String>) -> RouteSnapperMap {
+pub fn convert_osm(
+    input_osm: String,
+    boundary_geojson: Option<String>,
+    road_names: bool,
+) -> RouteSnapperMap {
     let mut timer = Timer::new("convert OSM to route snapper graph");
 
     let (streets, _) = streets_reader::osm_to_street_network(
@@ -23,10 +27,10 @@ pub fn convert_osm(input_osm: String, boundary_geojson: Option<String>) -> Route
         &mut timer,
     )
     .unwrap();
-    streets_to_snapper(&streets)
+    streets_to_snapper(&streets, road_names)
 }
 
-fn streets_to_snapper(streets: &osm2streets::StreetNetwork) -> RouteSnapperMap {
+fn streets_to_snapper(streets: &osm2streets::StreetNetwork, road_names: bool) -> RouteSnapperMap {
     let mut map = RouteSnapperMap {
         gps_bounds: streets.gps_bounds.clone(),
         nodes: Vec::new(),
@@ -59,6 +63,9 @@ fn streets_to_snapper(streets: &osm2streets::StreetNetwork) -> RouteSnapperMap {
             node2: id_lookup[&r.dst_i],
             geometry: r.reference_line.clone(),
             length: r.reference_line.length(),
+            // TODO When the name is missing, we could fallback on other OSM tags. See
+            // map_model::Road::get_name in A/B Street.
+            name: if road_names { r.name.clone() } else { None },
         });
     }
 
@@ -81,6 +88,7 @@ pub fn convert(input_osm: String, boundary_geojson: String) -> Vec<u8> {
         console_error_panic_hook::set_once();
     });
 
-    let snapper = convert_osm(input_osm, Some(boundary_geojson));
+    let road_names = true;
+    let snapper = convert_osm(input_osm, Some(boundary_geojson), road_names);
     bincode::serialize(&snapper).unwrap()
 }
