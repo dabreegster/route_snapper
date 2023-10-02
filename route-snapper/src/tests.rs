@@ -3,11 +3,11 @@ use crate::*;
 // The NodeIDs depend on the real southwark.bin graph! If the path between two nodes happens to
 // include a third node, then a test may be confusing, because it could look like an intermediate
 // point.
-const WAYPT1: Waypoint = Waypoint::Snapped(NodeID(1));
-const WAYPT2: Waypoint = Waypoint::Snapped(NodeID(2));
-const WAYPT3: Waypoint = Waypoint::Snapped(NodeID(3));
-const WAYPT4: Waypoint = Waypoint::Snapped(NodeID(4));
-const WAYPT5: Waypoint = Waypoint::Snapped(NodeID(5));
+const WAYPT1: Waypoint = Waypoint::Snapped(NodeID(10));
+const WAYPT2: Waypoint = Waypoint::Snapped(NodeID(20));
+const WAYPT3: Waypoint = Waypoint::Snapped(NodeID(30));
+const WAYPT4: Waypoint = Waypoint::Snapped(NodeID(40));
+const WAYPT5: Waypoint = Waypoint::Snapped(NodeID(50));
 
 // TODO Test freehand points with all of the variations of tests below
 
@@ -155,7 +155,7 @@ fn test_area() {
     // Drag something in between 1 and 2
     let intermediate = find_intermediate_point(&snapper, WAYPT1, WAYPT2);
     // Just make sure it's not one of the arbitrary IDs we chose. Manually figured out this ID.
-    assert_eq!(intermediate, Waypoint::Snapped(NodeID(211)));
+    assert_eq!(intermediate, Waypoint::Snapped(NodeID(4868)));
     drag(&mut snapper, intermediate, WAYPT4);
     // We should've introduced a new waypoint
     assert_eq!(

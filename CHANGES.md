@@ -7,6 +7,9 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+- Include road names in the graph, and auto-populate a route name. (Breaking
+  change to the binary graph format!)
+
 ## 0.1.15
 
 - Output GeoJSON precision is now trimmed to 6 decimal places

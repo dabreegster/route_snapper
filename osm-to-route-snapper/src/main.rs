@@ -17,6 +17,10 @@ struct Args {
     /// Output file to write
     #[arg(short, long, default_value = "snap.bin")]
     output: String,
+
+    /// Omit road names from the output, saving some space.
+    #[clap(long)]
+    no_road_names: bool,
 }
 
 fn main() {
@@ -25,6 +29,7 @@ fn main() {
         std::fs::read_to_string(args.input_osm).unwrap(),
         args.boundary
             .map(|path| std::fs::read_to_string(path).unwrap()),
+        !args.no_road_names,
     );
 
     let output = BufWriter::new(File::create(args.output).unwrap());
