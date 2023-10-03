@@ -110,6 +110,9 @@ There are a few methods on the `RouteSnapper` object you can call:
 - `debugRenderGraph` returns GeoJSON points and line-strings to debug the graph used for routing.
 - `changeGraph` can be used after initialization to change the loaded graph. It
   takes `graphBytes`, same as the constructor.
+- `routeNameForWaypoints` takes the `feature.properties.waypoints` and returns
+  a name describing the first and last waypoint (useful only for snapped
+  waypoints).
 
 ### MapLibre gotchas
 

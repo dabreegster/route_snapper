@@ -337,9 +337,14 @@ export class RouteSnapper {
     areaMode.checked = config.area_mode;
   }
 
-  /// Render the graph as GeoJSON points and line-strings, for debugging.
+  // Render the graph as GeoJSON points and line-strings, for debugging.
   debugRenderGraph() {
     return this.inner.debugRenderGraph();
+  }
+
+  // Given waypoint properties, calculate the route name.
+  routeNameForWaypoints(waypoints) {
+    return this.inner.routeNameForWaypoints(waypoints);
   }
 
   #finishSnapping() {

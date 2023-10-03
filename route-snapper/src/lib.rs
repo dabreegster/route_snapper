@@ -582,6 +582,27 @@ impl JsRouteSnapper {
             geojson::GeoJson::from(features.into_iter().collect::<geojson::FeatureCollection>());
         serde_json::to_string_pretty(&gj).unwrap()
     }
+
+    #[wasm_bindgen(js_name = routeNameForWaypoints)]
+    pub fn route_name_for_waypoints(&self, raw_waypoints: JsValue) -> Result<String, JsValue> {
+        let waypoints: Vec<RouteWaypoint> = serde_wasm_bindgen::from_value(raw_waypoints)?;
+        let from_name = self.name_for_waypoint(&waypoints[0])?;
+        let to_name = self.name_for_waypoint(waypoints.last().unwrap())?;
+        Ok(format!("Route from {from_name} to {to_name}"))
+    }
+
+    fn name_for_waypoint(&self, waypoint: &RouteWaypoint) -> Result<String, JsValue> {
+        if !waypoint.snapped {
+            return Ok("???".to_string());
+        }
+
+        let pt = LonLat::new(waypoint.lon, waypoint.lat).to_pt(&self.router.map.gps_bounds);
+        if let Some(node) = self.mouseover_node(pt) {
+            Ok(self.name_node(node))
+        } else {
+            return Err(JsValue::from_str("A waypoint didn't snap"));
+        }
+    }
 }
 
 impl JsRouteSnapper {

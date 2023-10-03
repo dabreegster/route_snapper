@@ -243,6 +243,11 @@
               );
               map.getSource("finished-routes").setData(completedRoutes);
 
+              let roadName = routeSnapper.routeNameForWaypoints(
+                editFeature.properties.waypoints
+              );
+              console.log(`Editing route. Re-calculated name is ${roadName}`);
+
               routeSnapper.editExisting(editFeature);
             }
           }
