@@ -7,6 +7,8 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+## 0.2.1
+
 - Added a `routeNameForWaypoints` API
 
 ## 0.2.0
