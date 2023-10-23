@@ -37,7 +37,7 @@ export class RouteSnapper {
           "circle-radius": [
             "match",
             ["get", "type"],
-            "unimportant",
+            "node",
             circleRadiusPixels / 2.0,
             // other
             circleRadiusPixels,
@@ -45,11 +45,11 @@ export class RouteSnapper {
           "circle-color": [
             "match",
             ["get", "type"],
-            "hovered",
-            "green",
-            "important",
+            "snapped-waypoint",
             "red",
-            // other
+            "free-waypoint",
+            "blue",
+            // other (node)
             "black",
           ],
         },

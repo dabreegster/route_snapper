@@ -69,6 +69,13 @@ impl Waypoint {
             Waypoint::Free(x) => PathEntry::FreePoint(x),
         }
     }
+
+    fn to_color_name(self) -> &'static str {
+        match self {
+            Waypoint::Snapped(_) => "snapped-waypoint",
+            Waypoint::Free(_) => "free-waypoint",
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -250,9 +257,9 @@ impl JsRouteSnapper {
 
         // Overlapping circles don't work, so override colors in here. Use these styles:
         //
-        // 1) "hovered": Something under the cursor
-        // 2) "important": A waypoint, or something being dragged
-        // 3) "unimportant": A draggable node on the route
+        // 1) "snapped-waypoint": A snapped waypoint
+        // 2) "free-waypoint": A freehand waypoint
+        // 3) "node": A draggable snapped node on the route, not a waypoint
         let mut draw_circles = BTreeMap::new();
 
         // Draw the confirmed route
@@ -263,16 +270,16 @@ impl JsRouteSnapper {
         for entry in &self.route.full_path {
             // Every free point is a waypoint, so just handle it below
             if let PathEntry::SnappedPoint(node) = entry {
-                draw_circles.insert(self.router.map.node(*node).to_hashable(), "unimportant");
+                draw_circles.insert(self.router.map.node(*node).to_hashable(), "node");
             }
         }
         for waypt in &self.route.waypoints {
-            draw_circles.insert(self.to_pt(*waypt), "important");
+            draw_circles.insert(self.to_pt(*waypt), waypt.to_color_name());
         }
 
         // Draw the current operation
         if let Mode::Hovering(hover) = self.mode {
-            draw_circles.insert(self.to_pt(hover), "hovered");
+            draw_circles.insert(self.to_pt(hover), hover.to_color_name());
 
             if let (Some(last), Waypoint::Snapped(current)) = (self.route.waypoints.last(), hover) {
                 // If we're trying to drag a point or it's a closed area, don't show this preview
@@ -325,10 +332,10 @@ impl JsRouteSnapper {
             }
         }
         if let Mode::Dragging { at, .. } = self.mode {
-            draw_circles.insert(self.to_pt(at), "hovered");
+            draw_circles.insert(self.to_pt(at), at.to_color_name());
         }
         if let Mode::Freehand(pt) = self.mode {
-            draw_circles.insert(pt.to_hashable(), "hovered");
+            draw_circles.insert(pt.to_hashable(), "free-waypoint");
 
             if let Some(last) = self.route.waypoints.last() {
                 let last_pt = match *last {
@@ -348,9 +355,9 @@ impl JsRouteSnapper {
         let mut draw_circles: Vec<(HashablePt2D, &'static str)> =
             draw_circles.into_iter().collect();
         draw_circles.sort_by_key(|(_, style)| match *style {
-            "hovered" => 3,
-            "important" => 2,
-            "unimportant" => 1,
+            "snapped-waypoint" => 3,
+            "free-waypoint" => 2,
+            "node" => 1,
             _ => unreachable!(),
         });
 

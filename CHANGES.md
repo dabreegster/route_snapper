@@ -7,6 +7,8 @@ this and want to give feedback on API changes.
 
 ## Unreleased
 
+- Change the `renderGeojson` output to distinguish snapped and freehand waypoints
+
 ## 0.2.1
 
 - Added a `routeNameForWaypoints` API
