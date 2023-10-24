@@ -113,6 +113,11 @@ There are a few methods on the `RouteSnapper` object you can call:
 - `routeNameForWaypoints` takes the `feature.properties.waypoints` and returns
   a name describing the first and last waypoint (useful only for snapped
   waypoints).
+
+### WASM API
+
+If you're using the WASM API directly, the best reference is currently [the code](https://github.com/dabreegster/route_snapper/blob/main/route-snapper/src/lib.rs). Some particulars:
+
 - `renderGeojson` returns a GeoJSON FeatureCollection to render the current state of the tool.
   - It'll include a LineString showing the confirmed route and also any speculative addition, based on the current state.
   - In area mode, it'll have a Polygon once there are at least 3 points.
