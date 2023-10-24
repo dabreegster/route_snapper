@@ -52,6 +52,7 @@ export class RouteSnapper {
             // other (node)
             "black",
           ],
+          "circle-opacity": ["case", ["has", "hovered"], 0.5, 1.0],
         },
       });
       this.map.addLayer({
@@ -362,9 +363,9 @@ export class RouteSnapper {
 
   #redraw() {
     if (this.loaded) {
-      this.map
-        .getSource("route-snapper")
-        .setData(JSON.parse(this.inner.renderGeojson()));
+      let gj = JSON.parse(this.inner.renderGeojson());
+      this.map.getSource("route-snapper").setData(gj);
+      this.map.getCanvas().style.cursor = gj.cursor;
     }
   }
 }
