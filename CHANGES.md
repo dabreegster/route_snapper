@@ -8,6 +8,8 @@ this and want to give feedback on API changes.
 ## Unreleased
 
 - Change the `renderGeojson` output to distinguish snapped and freehand waypoints
+- Include a `cursor` property in the `renderGeojson` output
+- Distinguish hovered points in the `renderGeojson` output
 
 ## 0.2.1
 
