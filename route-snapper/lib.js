@@ -52,6 +52,7 @@ export class RouteSnapper {
             // other (node)
             "black",
           ],
+          "circle-opacity": ["case", ["has", "hovered"], 0.5, 1.0],
         },
       });
       this.map.addLayer({

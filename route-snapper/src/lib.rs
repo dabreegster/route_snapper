@@ -260,6 +260,8 @@ impl JsRouteSnapper {
         // 1) "snapped-waypoint": A snapped waypoint
         // 2) "free-waypoint": A freehand waypoint
         // 3) "node": A draggable snapped node on the route, not a waypoint
+        //
+        // TODO Only draw each circle once, instead of overlapping.
         let mut draw_circles = BTreeMap::new();
 
         // Draw the confirmed route
@@ -361,9 +363,19 @@ impl JsRouteSnapper {
             _ => unreachable!(),
         });
 
+        let hovering_pt = match self.mode {
+            Mode::Neutral => None,
+            Mode::Hovering(pt) => Some(self.to_pt(pt)),
+            Mode::Dragging { at, .. } => Some(self.to_pt(at)),
+            Mode::Freehand(pt) => Some(pt.to_hashable()),
+        };
+
         for (pt, label) in draw_circles {
             let mut props = serde_json::Map::new();
             props.insert("type".to_string(), label.to_string().into());
+            if hovering_pt == Some(pt) {
+                props.insert("hovered".to_string(), true.into());
+            }
             result.push((
                 pt.to_pt2d().to_geojson(Some(&self.router.map.gps_bounds)),
                 props,
@@ -382,7 +394,7 @@ impl JsRouteSnapper {
         let cursor = match self.mode {
             Mode::Neutral => "inherit",
             Mode::Hovering(_) => "pointer",
-            Mode::Dragging { ..} => "grabbing",
+            Mode::Dragging { .. } => "grabbing",
             Mode::Freehand(_) => "crosshair",
         };
         if let geojson::GeoJson::FeatureCollection(ref mut fc) = gj {
