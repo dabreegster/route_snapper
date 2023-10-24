@@ -318,10 +318,9 @@ export class JsRouteSnapper {
         }
     }
     /**
-    * @param {boolean} snap_mode
     */
-    setSnapMode(snap_mode) {
-        wasm.jsroutesnapper_setSnapMode(this.__wbg_ptr, snap_mode);
+    toggleSnapMode() {
+        wasm.jsroutesnapper_toggleSnapMode(this.__wbg_ptr);
     }
     /**
     * @param {number} lon

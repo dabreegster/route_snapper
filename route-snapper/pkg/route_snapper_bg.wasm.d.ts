@@ -8,7 +8,7 @@ export function jsroutesnapper_setAreaMode(a: number): void;
 export function jsroutesnapper_getConfig(a: number, b: number): void;
 export function jsroutesnapper_toFinalFeature(a: number, b: number): void;
 export function jsroutesnapper_renderGeojson(a: number, b: number): void;
-export function jsroutesnapper_setSnapMode(a: number, b: number): void;
+export function jsroutesnapper_toggleSnapMode(a: number): void;
 export function jsroutesnapper_onMouseMove(a: number, b: number, c: number, d: number): number;
 export function jsroutesnapper_onClick(a: number): void;
 export function jsroutesnapper_onDragStart(a: number): number;

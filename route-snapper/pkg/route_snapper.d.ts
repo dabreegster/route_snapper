@@ -31,9 +31,8 @@ export class JsRouteSnapper {
 */
   renderGeojson(): string;
 /**
-* @param {boolean} snap_mode
 */
-  setSnapMode(snap_mode: boolean): void;
+  toggleSnapMode(): void;
 /**
 * @param {number} lon
 * @param {number} lat
@@ -82,7 +81,7 @@ export interface InitOutput {
   readonly jsroutesnapper_getConfig: (a: number, b: number) => void;
   readonly jsroutesnapper_toFinalFeature: (a: number, b: number) => void;
   readonly jsroutesnapper_renderGeojson: (a: number, b: number) => void;
-  readonly jsroutesnapper_setSnapMode: (a: number, b: number) => void;
+  readonly jsroutesnapper_toggleSnapMode: (a: number) => void;
   readonly jsroutesnapper_onMouseMove: (a: number, b: number, c: number, d: number) => number;
   readonly jsroutesnapper_onClick: (a: number) => void;
   readonly jsroutesnapper_onDragStart: (a: number) => number;

@@ -139,26 +139,9 @@ export class RouteSnapper {
         if (e.key == "Enter") {
           e.preventDefault();
           this.#finishSnapping();
-        }
-      });
-
-      document.addEventListener("keydown", (e) => {
-        if (!this.active) {
-          return;
-        }
-        if (e.key == "Shift") {
+        } else if (e.key == "s") {
           e.preventDefault();
-          this.inner.setSnapMode(false);
-          this.#redraw();
-        }
-      });
-      document.addEventListener("keyup", (e) => {
-        if (!this.active) {
-          return;
-        }
-        if (e.key == "Shift") {
-          e.preventDefault();
-          this.inner.setSnapMode(true);
+          this.inner.toggleSnapMode();
           this.#redraw();
         }
       });
@@ -289,9 +272,13 @@ export class RouteSnapper {
       </label>
     </div>
 
+    <div id="snap_mode" style="background: red;">
+      Snapping to transport network
+    </div>
+
     <ul>
       <li><b>Click</b> green points on the transport network</br>to create snapped routes</li>
-      <li>Hold <b>Shift</b> to draw a point anywhere</li>
+      <li>Press <b>s</b> to toggle snapping / freehand mode</li>
       <li><b>Click and drag</b> any point to move it</li>
       <li><b>Click</b> a red waypoint to delete it</li>
       <li>Press <b>Enter</b> or <b>double click</b> to finish route</li>
@@ -366,6 +353,19 @@ export class RouteSnapper {
       let gj = JSON.parse(this.inner.renderGeojson());
       this.map.getSource("route-snapper").setData(gj);
       this.map.getCanvas().style.cursor = gj.cursor;
+
+      // TODO Detect changes, don't do this constantly?
+      let snapDiv = document.getElementById("snap_mode");
+      if (!snapDiv) {
+        return;
+      }
+      if (gj.snap_mode) {
+        snapDiv.style = "background: red";
+        snapDiv.innerHtml = "Snapping to transport network";
+      } else {
+        snapDiv.style = "background: blue";
+        snapDiv.innerHtml = "Drawing freehand points";
+      }
     }
   }
 }
