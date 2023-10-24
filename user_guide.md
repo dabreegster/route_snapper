@@ -117,11 +117,13 @@ There are a few methods on the `RouteSnapper` object you can call:
   - It'll include a LineString showing the confirmed route and also any speculative addition, based on the current state.
   - In area mode, it'll have a Polygon once there are at least 3 points.
   - It'll include a Point for every graph node involved in the current route. These will have a `type` property that's either `snapped-waypoint`, `free-waypoint`, or just `node` to indicate a draggable node that hasn't been touched yet. One Point may also have a `"hovered": true` property to indicate the mouse is currently on that Point.
-  - The GeoJSON object will also contain one foreign member called `cursor` to indicate the current mode of the tool. The values can be set to `map.getCanvas().style.cursor` as desired.
+  - The GeoJSON object will also contain a foreign member called `cursor` to indicate the current mode of the tool. The values can be set to `map.getCanvas().style.cursor` as desired.
     - `inherit`: The user is just idling on the map, not interacting with the map
     - `pointer`: The user is hovering on some node
     - `grabbing`: The user is actively dragging a node
     - `crosshair`: The user is choosing a location for a new freehand point. If they click, the point will be added.
+  - The GeoJSON object will also have a boolean foreign member called `snap_mode`.
+- `toggleSnapMode` attempts to switch between snapping and freehand drawing. It may not succeed.
 
 ### MapLibre gotchas
 

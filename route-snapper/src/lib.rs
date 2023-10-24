@@ -28,7 +28,6 @@ pub struct JsRouteSnapper {
     snap_to_nodes: RTree<GeomWithData<[f64; 2], NodeID>>,
     route: Route,
     mode: Mode,
-    // Is the shift key not held?
     snap_mode: bool,
 }
 
@@ -116,9 +115,12 @@ struct DirectedEdge(EdgeID, Direction);
 #[derive(Clone, Debug, PartialEq)]
 enum Mode {
     Neutral,
+    // TODO It'd be simpler if this was only hovering on an existing node. Make a new state for
+    // appending a snapped point.
     Hovering(Waypoint),
     // idx is into full_path
     Dragging { idx: usize, at: Waypoint },
+    // TODO Rename? This is appending a freehand
     Freehand(Pt2D),
 }
 
@@ -400,18 +402,60 @@ impl JsRouteSnapper {
         if let geojson::GeoJson::FeatureCollection(ref mut fc) = gj {
             let mut props = serde_json::Map::new();
             props.insert("cursor".to_string(), cursor.into());
+            props.insert("snap_mode".to_string(), self.snap_mode.into());
             fc.foreign_members = Some(props);
         }
         serde_json::to_string_pretty(&gj).unwrap()
     }
 
-    #[wasm_bindgen(js_name = setSnapMode)]
-    pub fn set_snap_mode(&mut self, snap_mode: bool) {
-        // No freehand in area mode yet
-        if !snap_mode && self.router.config.area_mode {
+    #[wasm_bindgen(js_name = toggleSnapMode)]
+    pub fn toggle_snap_mode(&mut self) {
+        // Can't do this in area mode yet
+        if self.router.config.area_mode {
             return;
         }
-        self.snap_mode = snap_mode;
+        self.snap_mode = !self.snap_mode;
+
+        // Based on the current mode, immediately change something
+        match self.mode {
+            Mode::Neutral => {}
+            Mode::Hovering(waypt) => {
+                // Are we appending a snapped node?
+                // TODO This repeats logic from on_click to figure out if this is a new node. Split
+                // Mode into more cases instead.
+                if !self.route.full_path.contains(&waypt.to_path_entry()) {
+                    self.mode = Mode::Freehand(self.to_pt(waypt).to_pt2d());
+                }
+            }
+            Mode::Dragging { at, idx } => {
+                let new_waypt = match at {
+                    Waypoint::Snapped(node) => Waypoint::Free(self.router.map.node(node)),
+                    Waypoint::Free(pt) => {
+                        if let Some(node) = self.mouseover_node(pt) {
+                            Waypoint::Snapped(node)
+                        } else {
+                            // TODO Couldn't convert a free point to snapped! What do we do now?
+                            self.snap_mode = false;
+                            return;
+                        }
+                    }
+                };
+                let new_idx = self.route.move_waypoint(&self.router, idx, new_waypt);
+                self.mode = Mode::Dragging {
+                    idx: new_idx,
+                    at: new_waypt,
+                };
+            }
+            Mode::Freehand(pt) => {
+                if let Some(node) = self.mouseover_node(pt) {
+                    self.mode = Mode::Hovering(Waypoint::Snapped(node));
+                } else {
+                    // TODO Couldn't convert a free point to snapped! What do we do now?
+                    self.snap_mode = false;
+                    return;
+                }
+            }
+        }
     }
 
     // True if something has changed
@@ -444,6 +488,8 @@ impl JsRouteSnapper {
                 changed = true;
             }
             Mode::Dragging { idx, at } => {
+                // Keep the same snapped/free type here. Toggling will change this current
+                // waypoint.
                 let new_waypt = match at {
                     Waypoint::Snapped(_) => self.mouseover_node(pt).map(Waypoint::Snapped),
                     Waypoint::Free(_) => Some(Waypoint::Free(pt)),
@@ -549,6 +595,7 @@ impl JsRouteSnapper {
                 .position(|x| *x == at.to_path_entry())
             {
                 self.mode = Mode::Dragging { idx, at };
+                self.snap_mode = matches!(at, Waypoint::Snapped(_));
                 return true;
             }
         }

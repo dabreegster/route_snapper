@@ -10,6 +10,8 @@ this and want to give feedback on API changes.
 - Change the `renderGeojson` output to distinguish snapped and freehand waypoints
 - Include a `cursor` property in the `renderGeojson` output
 - Distinguish hovered points in the `renderGeojson` output
+- Use a keypress to toggle snap/freehand mode, instead of holding down a key
+- Convert existing nodes between snapped/freehand
 
 ## 0.2.1
 
