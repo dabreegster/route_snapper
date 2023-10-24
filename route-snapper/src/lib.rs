@@ -189,6 +189,7 @@ impl JsRouteSnapper {
     /// Enables area mode, where the snapper produces polygons.
     #[wasm_bindgen(js_name = setAreaMode)]
     pub fn set_area_mode(&mut self) {
+        self.snap_mode = true;
         self.router.config = Config {
             avoid_doubling_back: true,
             extend_route: true,
