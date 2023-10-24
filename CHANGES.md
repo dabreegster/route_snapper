@@ -1,11 +1,13 @@
 # Changes
 
-If it's not clear from the rapid churn, this package is changing quickly due to
-evolving requirements from its main user. Within `0.1`, expect the API to
-bounce all over the place. Please open a Github issue if you're actively using
-this and want to give feedback on API changes.
+This package is changing quickly due to evolving requirements from its main
+user. Before `1.0`, expect the API to bounce all over the place. Please open a
+Github issue if you're actively using this and want to give feedback on API
+changes.
 
 ## Unreleased
+
+## 0.2.2
 
 - Change the `renderGeojson` output to distinguish snapped and freehand waypoints
 - Include a `cursor` property in the `renderGeojson` output
