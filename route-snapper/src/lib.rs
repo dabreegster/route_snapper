@@ -378,8 +378,19 @@ impl JsRouteSnapper {
         }
 
         // Don't bother trimming coordinate precision here; it's just for temporary rendering
-        let obj = geom::geometries_with_properties_to_geojson(result);
-        serde_json::to_string_pretty(&obj).unwrap()
+        let mut gj = geom::geometries_with_properties_to_geojson(result);
+        let cursor = match self.mode {
+            Mode::Neutral => "inherit",
+            Mode::Hovering(_) => "pointer",
+            Mode::Dragging { ..} => "grabbing",
+            Mode::Freehand(_) => "crosshair",
+        };
+        if let geojson::GeoJson::FeatureCollection(ref mut fc) = gj {
+            let mut props = serde_json::Map::new();
+            props.insert("cursor".to_string(), cursor.into());
+            fc.foreign_members = Some(props);
+        }
+        serde_json::to_string_pretty(&gj).unwrap()
     }
 
     #[wasm_bindgen(js_name = setSnapMode)]
