@@ -617,6 +617,7 @@ impl JsRouteSnapper {
     pub fn clear_state(&mut self) {
         self.route = Route::new();
         self.mode = Mode::Neutral;
+        self.snap_mode = true;
     }
 
     #[wasm_bindgen(js_name = editExisting)]
