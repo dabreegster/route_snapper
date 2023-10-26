@@ -268,10 +268,7 @@ impl JsRouteSnapper {
         let mut draw_circles = BTreeMap::new();
 
         // Draw the confirmed route
-        if let Some(pl) = self.entire_line_string() {
-            let geometry = pl.to_geojson(Some(&self.router.map.gps_bounds));
-            result.push((geometry, serde_json::Map::new()));
-        }
+        result.extend(self.line_string_broken_down());
         for entry in &self.route.full_path {
             // Every free point is a waypoint, so just handle it below
             if let PathEntry::SnappedPoint(node) = entry {
@@ -306,9 +303,11 @@ impl JsRouteSnapper {
                                             &self.router.map,
                                             dir_edge,
                                         ));
+                                        let mut props = serde_json::Map::new();
+                                        props.insert("snapped".to_string(), true.into());
                                         result.push((
                                             pl.to_geojson(Some(&self.router.map.gps_bounds)),
-                                            serde_json::Map::new(),
+                                            props,
                                         ));
                                     }
                                 }
@@ -318,19 +317,20 @@ impl JsRouteSnapper {
                                     self.router.map.node(*last),
                                     self.router.map.node(current),
                                 ]);
+                                let mut props = serde_json::Map::new();
+                                props.insert("snapped".to_string(), false.into());
                                 result.push((
                                     pl.to_geojson(Some(&self.router.map.gps_bounds)),
-                                    serde_json::Map::new(),
+                                    props,
                                 ));
                             }
                         }
                         Waypoint::Free(pt) => {
                             let pl =
                                 PolyLine::unchecked_new(vec![*pt, self.router.map.node(current)]);
-                            result.push((
-                                pl.to_geojson(Some(&self.router.map.gps_bounds)),
-                                serde_json::Map::new(),
-                            ));
+                            let mut props = serde_json::Map::new();
+                            props.insert("snapped".to_string(), false.into());
+                            result.push((pl.to_geojson(Some(&self.router.map.gps_bounds)), props));
                         }
                     }
                 }
@@ -348,10 +348,9 @@ impl JsRouteSnapper {
                     Waypoint::Free(pt) => pt,
                 };
                 let pl = PolyLine::unchecked_new(vec![last_pt, pt]);
-                result.push((
-                    pl.to_geojson(Some(&self.router.map.gps_bounds)),
-                    serde_json::Map::new(),
-                ));
+                let mut props = serde_json::Map::new();
+                props.insert("snapped".to_string(), false.into());
+                result.push((pl.to_geojson(Some(&self.router.map.gps_bounds)), props));
             }
         }
 
@@ -742,6 +741,65 @@ impl JsRouteSnapper {
             return None;
         }
         Some(PolyLine::unchecked_new(pts))
+    }
+
+    // Returns the entire_line_string, but broken into pieces with a snapped=true/false property.
+    fn line_string_broken_down(
+        &self,
+    ) -> Vec<(
+        geojson::Geometry,
+        serde_json::Map<String, serde_json::Value>,
+    )> {
+        let mut result = Vec::new();
+        if self.route.full_path.is_empty() {
+            return result;
+        }
+        let mut add_result = |mut pts: Vec<Pt2D>, snapped: bool| {
+            pts.dedup();
+            if pts.len() >= 2 {
+                let geometry =
+                    PolyLine::unchecked_new(pts).to_geojson(Some(&self.router.map.gps_bounds));
+                let mut props = serde_json::Map::new();
+                props.insert("snapped".to_string(), snapped.into());
+                result.push((geometry, props));
+            }
+        };
+
+        let mut prev_snapped = !matches!(self.route.full_path[0], PathEntry::FreePoint(_));
+        let mut pts = Vec::new();
+
+        for entry in &self.route.full_path {
+            let pt = match entry {
+                PathEntry::SnappedPoint(node) => self.router.map.node(*node),
+                PathEntry::FreePoint(pt) => *pt,
+                PathEntry::Edge(dir_edge) => {
+                    pts.extend(edge_geometry(&self.router.map, *dir_edge));
+                    continue;
+                }
+            };
+            let snapped = !matches!(entry, PathEntry::FreePoint(_));
+
+            if prev_snapped == snapped {
+                pts.push(pt);
+            } else if prev_snapped {
+                // Starting freehand
+                let last_pt = *pts.last().unwrap();
+                add_result(std::mem::take(&mut pts), true);
+                prev_snapped = false;
+                pts = vec![last_pt, pt];
+            } else {
+                // Starting snapped
+                pts.push(pt);
+                add_result(std::mem::take(&mut pts), false);
+                prev_snapped = true;
+                pts = vec![pt];
+            }
+        }
+
+        // Handle the last transition
+        add_result(std::mem::take(&mut pts), prev_snapped);
+
+        result
     }
 
     fn into_polygon_area(&self) -> Option<geojson::Geometry> {

@@ -65,7 +65,7 @@ export class RouteSnapper {
           "line-join": "round",
         },
         paint: {
-          "line-color": "black",
+          "line-color": ["case", ["get", "snapped"], "red", "blue"],
           "line-width": 2.5,
         },
       });
@@ -272,7 +272,7 @@ export class RouteSnapper {
       </label>
     </div>
 
-    <div id="snap_mode" style="background: red;">
+    <div id="snap_mode" style="background: red; color: white; padding: 8px">
       Snapping to transport network
     </div>
 
@@ -360,10 +360,10 @@ export class RouteSnapper {
         return;
       }
       if (gj.snap_mode) {
-        snapDiv.style = "background: red";
+        snapDiv.style = "background: red; color: white; padding: 8px";
         snapDiv.innerHtml = "Snapping to transport network";
       } else {
-        snapDiv.style = "background: blue";
+        snapDiv.style = "background: blue; color: white; padding: 8px";
         snapDiv.innerHtml = "Drawing freehand points";
       }
     }

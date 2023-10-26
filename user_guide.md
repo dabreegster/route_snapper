@@ -119,7 +119,7 @@ There are a few methods on the `RouteSnapper` object you can call:
 If you're using the WASM API directly, the best reference is currently [the code](https://github.com/dabreegster/route_snapper/blob/main/route-snapper/src/lib.rs). Some particulars:
 
 - `renderGeojson` returns a GeoJSON FeatureCollection to render the current state of the tool.
-  - It'll include a LineString showing the confirmed route and also any speculative addition, based on the current state.
+  - It'll include LineStrings showing the confirmed route and also any speculative addition, based on the current state. The LineStrings will have a boolean `snapped` property, which is false if either end touches a freehand point.
   - In area mode, it'll have a Polygon once there are at least 3 points.
   - It'll include a Point for every graph node involved in the current route. These will have a `type` property that's either `snapped-waypoint`, `free-waypoint`, or just `node` to indicate a draggable node that hasn't been touched yet. One Point may also have a `"hovered": true` property to indicate the mouse is currently on that Point.
   - The GeoJSON object will also contain a foreign member called `cursor` to indicate the current mode of the tool. The values can be set to `map.getCanvas().style.cursor` as desired.
