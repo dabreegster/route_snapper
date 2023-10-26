@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+## 0.2.3
+
 - Always start in snap mode for a new route, even if the user last used freehand mode.
 - Color lines to show freehand/snapped as well
 
