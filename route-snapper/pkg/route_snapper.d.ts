@@ -73,6 +73,9 @@ export class JsRouteSnapper {
 * @param {number} lat
 */
   addSnappedWaypoint(lon: number, lat: number): void;
+/**
+*/
+  undo(): void;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -96,6 +99,7 @@ export interface InitOutput {
   readonly jsroutesnapper_debugRenderGraph: (a: number, b: number) => void;
   readonly jsroutesnapper_routeNameForWaypoints: (a: number, b: number, c: number) => void;
   readonly jsroutesnapper_addSnappedWaypoint: (a: number, b: number, c: number) => void;
+  readonly jsroutesnapper_undo: (a: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
