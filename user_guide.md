@@ -129,6 +129,7 @@ If you're using the WASM API directly, the best reference is currently [the code
     - `crosshair`: The user is choosing a location for a new freehand point. If they click, the point will be added.
   - The GeoJSON object will also have a boolean foreign member called `snap_mode`.
 - `toggleSnapMode` attempts to switch between snapping and freehand drawing. It may not succeed.
+- `addSnappedWaypoint` adds a new waypoint to the end of the route, snapping to the nearest node. It's useful for clients to hook up a geocoder and add a point by address. Unsupported in area mode.
 
 ### MapLibre gotchas
 

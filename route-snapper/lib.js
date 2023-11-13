@@ -287,6 +287,11 @@ export class RouteSnapper {
       <li>Press <b>Enter</b> or <b>double click</b> to finish route</li>
       <li>Press <b>Escape</b> to cancel and discard route</li>
     </ul>
+
+    <div>
+      <input type="text" id="add-waypoint-value" placeholder="longitude, latitude" />
+      <button type="button" id="add-waypoint-button">Add waypoint</button>
+    </div>
     `;
 
     document.getElementById("finish-route-button").onclick = () => {
@@ -319,6 +324,21 @@ export class RouteSnapper {
         });
       }
       this.#redraw();
+    };
+
+    document.getElementById("add-waypoint-button").onclick = () => {
+      let value = document.getElementById("add-waypoint-value").value;
+      let parts = value.split(/\s*,\s*/).map(parseFloat);
+      if (
+        parts.length == 2 &&
+        !Number.isNaN(parts[0]) &&
+        !Number.isNaN(parts[1])
+      ) {
+        this.inner.addSnappedWaypoint(parts[0], parts[1]);
+        this.#redraw();
+      } else {
+        window.alert("Invalid input, no waypoint added");
+      }
     };
 
     // Sync checkboxes with the tool's current state, from the last time it was used

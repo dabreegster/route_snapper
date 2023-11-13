@@ -683,6 +683,19 @@ impl JsRouteSnapper {
         Ok(format!("Route from {from_name} to {to_name}"))
     }
 
+    #[wasm_bindgen(js_name = addSnappedWaypoint)]
+    pub fn add_snapped_waypoint(&mut self, lon: f64, lat: f64) {
+        // Not supported yet
+        if self.router.config.area_mode {
+            return;
+        }
+        let pt = LonLat::new(lon, lat).to_pt(&self.router.map.gps_bounds);
+        if let Some(node) = self.mouseover_node(pt) {
+            self.route
+                .add_waypoint(&self.router, Waypoint::Snapped(node));
+        }
+    }
+
     fn name_for_waypoint(&self, waypoint: &RouteWaypoint) -> Result<String, JsValue> {
         if !waypoint.snapped {
             return Ok("???".to_string());

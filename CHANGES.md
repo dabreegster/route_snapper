@@ -8,6 +8,7 @@ changes.
 ## Unreleased
 
 - Include road labels for waypoints in interactive output
+- Add an `addSnappedWaypoint` API for use with a geocoder
 
 ## 0.2.3
 
