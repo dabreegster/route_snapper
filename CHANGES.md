@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+## 0.2.5
+
 - Undo support
 
 ## 0.2.4
