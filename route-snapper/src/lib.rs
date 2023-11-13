@@ -220,14 +220,8 @@ impl JsRouteSnapper {
             )));
             f.set_property("length_meters", length.inner_meters());
 
-            let from_name = match self.route.waypoints[0] {
-                Waypoint::Snapped(node) => self.name_node(node),
-                Waypoint::Free(_) => "???".to_string(),
-            };
-            let to_name = match self.route.waypoints.last().as_ref().unwrap() {
-                Waypoint::Snapped(node) => self.name_node(*node),
-                Waypoint::Free(_) => "???".to_string(),
-            };
+            let from_name = self.name_waypoint(&self.route.waypoints[0]);
+            let to_name = self.name_waypoint(self.route.waypoints.last().as_ref().unwrap());
             f.set_property("route_name", format!("Route from {from_name} to {to_name}"));
 
             f
@@ -264,24 +258,33 @@ impl JsRouteSnapper {
         // 2) "free-waypoint": A freehand waypoint
         // 3) "node": A draggable snapped node on the route, not a waypoint
         //
+        // Store (style, optional intersection name)
+        //
         // TODO Only draw each circle once, instead of overlapping.
-        let mut draw_circles = BTreeMap::new();
+        let mut draw_circles: BTreeMap<HashablePt2D, (&'static str, Option<String>)> =
+            BTreeMap::new();
 
         // Draw the confirmed route
         result.extend(self.line_string_broken_down());
         for entry in &self.route.full_path {
             // Every free point is a waypoint, so just handle it below
             if let PathEntry::SnappedPoint(node) = entry {
-                draw_circles.insert(self.router.map.node(*node).to_hashable(), "node");
+                draw_circles.insert(self.router.map.node(*node).to_hashable(), ("node", None));
             }
         }
         for waypt in &self.route.waypoints {
-            draw_circles.insert(self.to_pt(*waypt), waypt.to_color_name());
+            draw_circles.insert(
+                self.to_pt(*waypt),
+                (waypt.to_color_name(), Some(self.name_waypoint(waypt))),
+            );
         }
 
         // Draw the current operation
         if let Mode::Hovering(hover) = self.mode {
-            draw_circles.insert(self.to_pt(hover), hover.to_color_name());
+            draw_circles.insert(
+                self.to_pt(hover),
+                (hover.to_color_name(), Some(self.name_waypoint(&hover))),
+            );
 
             if let (Some(last), Waypoint::Snapped(current)) = (self.route.waypoints.last(), hover) {
                 // If we're trying to drag a point or it's a closed area, don't show this preview
@@ -337,10 +340,13 @@ impl JsRouteSnapper {
             }
         }
         if let Mode::Dragging { at, .. } = self.mode {
-            draw_circles.insert(self.to_pt(at), at.to_color_name());
+            draw_circles.insert(
+                self.to_pt(at),
+                (at.to_color_name(), Some(self.name_waypoint(&at))),
+            );
         }
         if let Mode::Freehand(pt) = self.mode {
-            draw_circles.insert(pt.to_hashable(), "free-waypoint");
+            draw_circles.insert(pt.to_hashable(), ("free-waypoint", None));
 
             if let Some(last) = self.route.waypoints.last() {
                 let last_pt = match *last {
@@ -356,9 +362,11 @@ impl JsRouteSnapper {
 
         // Partially overlapping circles cover each other up, so make sure the important ones are
         // drawn last
-        let mut draw_circles: Vec<(HashablePt2D, &'static str)> =
-            draw_circles.into_iter().collect();
-        draw_circles.sort_by_key(|(_, style)| match *style {
+        let mut draw_circles: Vec<(HashablePt2D, &'static str, Option<String>)> = draw_circles
+            .into_iter()
+            .map(|(key, (v1, v2))| (key, v1, v2))
+            .collect();
+        draw_circles.sort_by_key(|(_, style, _)| match *style {
             "snapped-waypoint" => 3,
             "free-waypoint" => 2,
             "node" => 1,
@@ -372,11 +380,17 @@ impl JsRouteSnapper {
             Mode::Freehand(pt) => Some(pt.to_hashable()),
         };
 
-        for (pt, label) in draw_circles {
+        for (pt, label, maybe_name) in draw_circles {
             let mut props = serde_json::Map::new();
             props.insert("type".to_string(), label.to_string().into());
             if hovering_pt == Some(pt) {
                 props.insert("hovered".to_string(), true.into());
+            }
+            if let Some(name) = maybe_name {
+                // Skip freehand points
+                if name != "???" {
+                    props.insert("name".to_string(), name.into());
+                }
             }
             result.push((
                 pt.to_pt2d().to_geojson(Some(&self.router.map.gps_bounds)),
@@ -676,7 +690,7 @@ impl JsRouteSnapper {
 
         let pt = LonLat::new(waypoint.lon, waypoint.lat).to_pt(&self.router.map.gps_bounds);
         if let Some(node) = self.mouseover_node(pt) {
-            Ok(self.name_node(node))
+            Ok(self.name_waypoint(&Waypoint::Snapped(node)))
         } else {
             return Err(JsValue::from_str("A waypoint didn't snap"));
         }
@@ -823,19 +837,24 @@ impl JsRouteSnapper {
         .to_hashable()
     }
 
-    fn name_node(&self, id: NodeID) -> String {
-        let edge_names = self
-            .router
-            .graph
-            .edges(id)
-            .map(|(_, _, edge)| {
-                self.router.map.edges[edge.0 .0 as usize]
-                    .name
-                    .clone()
-                    .unwrap_or_else(|| "???".to_string())
-            })
-            .collect::<BTreeSet<_>>();
-        plain_list_names(edge_names)
+    fn name_waypoint(&self, waypt: &Waypoint) -> String {
+        match waypt {
+            Waypoint::Snapped(node) => {
+                let edge_names = self
+                    .router
+                    .graph
+                    .edges(*node)
+                    .map(|(_, _, edge)| {
+                        self.router.map.edges[edge.0 .0 as usize]
+                            .name
+                            .clone()
+                            .unwrap_or_else(|| "???".to_string())
+                    })
+                    .collect::<BTreeSet<_>>();
+                plain_list_names(edge_names)
+            }
+            Waypoint::Free(_) => "???".to_string(),
+        }
     }
 }
 

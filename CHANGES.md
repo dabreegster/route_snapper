@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+- Include road labels for waypoints in interactive output
+
 ## 0.2.3
 
 - Always start in snap mode for a new route, even if the user last used freehand mode.

@@ -276,6 +276,9 @@ export class RouteSnapper {
       Snapping to transport network
     </div>
 
+    <p>Waypoint names (unordered):</p>
+    <ul id="waypoint_list"></ul>
+
     <ul>
       <li><b>Click</b> green points on the transport network</br>to create snapped routes</li>
       <li>Press <b>s</b> to toggle snapping / freehand mode</li>
@@ -356,15 +359,26 @@ export class RouteSnapper {
 
       // TODO Detect changes, don't do this constantly?
       let snapDiv = document.getElementById("snap_mode");
-      if (!snapDiv) {
-        return;
+      if (snapDiv) {
+        if (gj.snap_mode) {
+          snapDiv.style = "background: red; color: white; padding: 8px";
+          snapDiv.innerHTML = "Snapping to transport network";
+        } else {
+          snapDiv.style = "background: blue; color: white; padding: 8px";
+          snapDiv.innerHTML = "Drawing freehand points";
+        }
       }
-      if (gj.snap_mode) {
-        snapDiv.style = "background: red; color: white; padding: 8px";
-        snapDiv.innerHtml = "Snapping to transport network";
-      } else {
-        snapDiv.style = "background: blue; color: white; padding: 8px";
-        snapDiv.innerHtml = "Drawing freehand points";
+
+      let list = document.getElementById("waypoint_list");
+      if (list) {
+        list.innerHTML = "";
+        for (let f of gj.features) {
+          if (f.properties.name) {
+            let li = document.createElement("li");
+            li.innerText = f.properties.name;
+            list.appendChild(li);
+          }
+        }
       }
     }
   }
