@@ -122,12 +122,14 @@ If you're using the WASM API directly, the best reference is currently [the code
   - It'll include LineStrings showing the confirmed route and also any speculative addition, based on the current state. The LineStrings will have a boolean `snapped` property, which is false if either end touches a freehand point.
   - In area mode, it'll have a Polygon once there are at least 3 points.
   - It'll include a Point for every graph node involved in the current route. These will have a `type` property that's either `snapped-waypoint`, `free-waypoint`, or just `node` to indicate a draggable node that hasn't been touched yet. One Point may also have a `"hovered": true` property to indicate the mouse is currently on that Point. Points may also have a `name` property with the road names for that intersection.
-  - The GeoJSON object will also contain a foreign member called `cursor` to indicate the current mode of the tool. The values can be set to `map.getCanvas().style.cursor` as desired.
-    - `inherit`: The user is just idling on the map, not interacting with the map
-    - `pointer`: The user is hovering on some node
-    - `grabbing`: The user is actively dragging a node
-    - `crosshair`: The user is choosing a location for a new freehand point. If they click, the point will be added.
-  - The GeoJSON object will also have a boolean foreign member called `snap_mode`.
+  - The GeoJSON object will have some additional foreign members:
+    - `cursor`, indicating the current mode of the tool. The values can be set to `map.getCanvas().style.cursor` as desired.
+      - `inherit`: The user is just idling on the map, not interacting with the map
+      - `pointer`: The user is hovering on some node
+      - `grabbing`: The user is actively dragging a node
+      - `crosshair`: The user is choosing a location for a new freehand point. If they click, the point will be added.
+    - A boolean `snap_mode`
+    - A numeric `undo_length`
 - `toggleSnapMode` attempts to switch between snapping and freehand drawing. It may not succeed.
 - `addSnappedWaypoint` adds a new waypoint to the end of the route, snapping to the nearest node. It's useful for clients to hook up a geocoder and add a point by address. Unsupported in area mode.
 

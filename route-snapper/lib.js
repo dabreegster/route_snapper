@@ -143,6 +143,10 @@ export class RouteSnapper {
           e.preventDefault();
           this.inner.toggleSnapMode();
           this.#redraw();
+        } else if (e.key == "z" && e.ctrlKey) {
+          e.preventDefault();
+          this.inner.undo();
+          this.#redraw();
         }
       });
 
@@ -250,6 +254,7 @@ export class RouteSnapper {
     this.controlDiv.innerHTML = `
     <div style="display: flex; justify-content: space-evenly;">
       <button type="button" id="finish-route-button">Finish route</button>
+      <button type="button" id="undo-button" disabled>Undo</button>
       <button type="button" id="cancel-button">Cancel</button>
     </div>
 
@@ -284,6 +289,7 @@ export class RouteSnapper {
       <li>Press <b>s</b> to toggle snapping / freehand mode</li>
       <li><b>Click and drag</b> any point to move it</li>
       <li><b>Click</b> a red waypoint to delete it</li>
+      <li>Press <b>Control+Z</b> to undo</li>
       <li>Press <b>Enter</b> or <b>double click</b> to finish route</li>
       <li>Press <b>Escape</b> to cancel and discard route</li>
     </ul>
@@ -296,6 +302,10 @@ export class RouteSnapper {
 
     document.getElementById("finish-route-button").onclick = () => {
       this.#finishSnapping();
+    };
+    document.getElementById("undo-button").onclick = () => {
+      this.inner.undo();
+      this.#redraw();
     };
     document.getElementById("cancel-button").onclick = () => {
       this.controlDiv.dispatchEvent(new CustomEvent("no-new-route"));
@@ -376,6 +386,17 @@ export class RouteSnapper {
       let gj = JSON.parse(this.inner.renderGeojson());
       this.map.getSource("route-snapper").setData(gj);
       this.map.getCanvas().style.cursor = gj.cursor;
+
+      let undoButton = document.getElementById("undo-button");
+      if (undoButton) {
+        if (gj.undo_length > 0) {
+          undoButton.disabled = false;
+          undoButton.textContent = `Undo (${gj.undo_length})`;
+        } else {
+          undoButton.textContent = "Undo";
+          undoButton.disabled = true;
+        }
+      }
 
       // TODO Detect changes, don't do this constantly?
       let snapDiv = document.getElementById("snap_mode");

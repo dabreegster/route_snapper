@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+- Undo support
+
 ## 0.2.4
 
 - Include road labels for waypoints in interactive output

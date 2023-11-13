@@ -20,6 +20,8 @@ use route_snapper_graph::{EdgeID, NodeID, RouteSnapperMap};
 
 static START: Once = Once::new();
 
+const MAX_PREVIOUS_STATES: usize = 100;
+
 type Graph = DiGraphMap<NodeID, DirectedEdge>;
 
 #[wasm_bindgen]
@@ -29,6 +31,8 @@ pub struct JsRouteSnapper {
     route: Route,
     mode: Mode,
     snap_mode: bool,
+    // Copies of route.waypoints are sufficient to represent state
+    previous_states: Vec<Vec<Waypoint>>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -168,6 +172,7 @@ impl JsRouteSnapper {
             route: Route::new(),
             mode: Mode::Neutral,
             snap_mode: true,
+            previous_states: Vec::new(),
         })
     }
 
@@ -417,6 +422,7 @@ impl JsRouteSnapper {
             let mut props = serde_json::Map::new();
             props.insert("cursor".to_string(), cursor.into());
             props.insert("snap_mode".to_string(), self.snap_mode.into());
+            props.insert("undo_length".to_string(), self.previous_states.len().into());
             fc.foreign_members = Some(props);
         }
         serde_json::to_string_pretty(&gj).unwrap()
@@ -454,6 +460,7 @@ impl JsRouteSnapper {
                         }
                     }
                 };
+                // Don't keep every single update during a drag
                 let new_idx = self.route.move_waypoint(&self.router, idx, new_waypt);
                 self.mode = Mode::Dragging {
                     idx: new_idx,
@@ -510,6 +517,7 @@ impl JsRouteSnapper {
                 };
                 if let Some(new_waypt) = new_waypt {
                     if new_waypt != at {
+                        // Don't keep every single update during a drag
                         let new_idx = self.route.move_waypoint(&self.router, idx, new_waypt);
                         self.mode = Mode::Dragging {
                             idx: new_idx,
@@ -551,6 +559,7 @@ impl JsRouteSnapper {
         // TODO Allow freehand points for areas, once we can convert existing waypoints
         if !self.router.config.area_mode {
             if let Mode::Freehand(pt) = self.mode {
+                self.before_update();
                 self.route.add_waypoint(&self.router, Waypoint::Free(pt));
             }
         }
@@ -565,12 +574,14 @@ impl JsRouteSnapper {
                         && idx != 0
                         && idx != self.route.waypoints.len() - 1
                     {
+                        self.before_update();
                         self.route.waypoints.remove(idx);
                         self.route.recalculate_full_path(&self.router);
                     }
                 } else {
                     // Don't delete the only waypoint
                     if self.route.waypoints.len() > 1 {
+                        self.before_update();
                         self.route.waypoints.remove(idx);
                         self.route.recalculate_full_path(&self.router);
                         // We're still in a hovering state on the point we just deleted. We may
@@ -585,6 +596,7 @@ impl JsRouteSnapper {
                     return;
                 }
 
+                self.before_update();
                 self.route.add_waypoint(&self.router, hover);
                 if self.router.config.area_mode
                     && !self.route.is_closed_area()
@@ -608,6 +620,8 @@ impl JsRouteSnapper {
                 .iter()
                 .position(|x| *x == at.to_path_entry())
             {
+                // TODO Only do this for the first actual bit of drag?
+                self.before_update();
                 self.mode = Mode::Dragging { idx, at };
                 self.snap_mode = matches!(at, Waypoint::Snapped(_));
                 return true;
@@ -631,6 +645,7 @@ impl JsRouteSnapper {
         self.route = Route::new();
         self.mode = Mode::Neutral;
         self.snap_mode = true;
+        self.previous_states.clear();
     }
 
     #[wasm_bindgen(js_name = editExisting)]
@@ -691,8 +706,21 @@ impl JsRouteSnapper {
         }
         let pt = LonLat::new(lon, lat).to_pt(&self.router.map.gps_bounds);
         if let Some(node) = self.mouseover_node(pt) {
+            self.before_update();
             self.route
                 .add_waypoint(&self.router, Waypoint::Snapped(node));
+        }
+    }
+
+    #[wasm_bindgen()]
+    pub fn undo(&mut self) {
+        if let Mode::Dragging { .. } = self.mode {
+            // Too confusing
+            return;
+        }
+        if let Some(state) = self.previous_states.pop() {
+            self.route.waypoints = state;
+            self.route.recalculate_full_path(&self.router);
         }
     }
 
@@ -706,6 +734,14 @@ impl JsRouteSnapper {
             Ok(self.name_waypoint(&Waypoint::Snapped(node)))
         } else {
             return Err(JsValue::from_str("A waypoint didn't snap"));
+        }
+    }
+
+    fn before_update(&mut self) {
+        self.previous_states.push(self.route.waypoints.clone());
+        // TODO Different data structure to make this more efficient
+        if self.previous_states.len() > MAX_PREVIOUS_STATES {
+            self.previous_states.remove(0);
         }
     }
 }
