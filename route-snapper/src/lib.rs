@@ -40,6 +40,8 @@ struct Config {
     /// With multiple intermediate waypoints, try to avoid routing on edges already used in a
     /// previous portion of the path. This is best-effort.
     avoid_doubling_back: bool,
+
+    restrict_to_same_road: bool,
     /// If false, the user can only drag waypoints after specifying the start and end of the route.
     /// If true, they can keep clicking to extend the end of the route.
     extend_route: bool,
@@ -1019,6 +1021,7 @@ impl Router {
         node1: NodeID,
         node2: NodeID,
         prev_path: &Vec<PathEntry>,
+        config: &Config,
     ) -> Option<Vec<PathEntry>> {
         // Penalize visiting edges we've been to before, so that waypoints don't cause us to double
         // back
@@ -1028,6 +1031,17 @@ impl Router {
             for entry in prev_path {
                 if let PathEntry::Edge(e) = entry {
                     avoid.insert(e.0);
+                }
+            }
+        }
+
+        // Check if need to restrict the same road
+        let mut same_road = None;
+        if config.restrict_to_same_road {
+            for entry in prev_path.iter().rev() {
+                if let Path::Edge(e) = entry {
+                    same_road = Some(e.0);
+                    break;
                 }
             }
         }
@@ -1044,6 +1058,13 @@ impl Router {
                 } else {
                     1.0
                 };
+
+                // Apply a penalty for edges not matching same road if required
+                if let Some(last_road) = same_road {
+                    if dir_edge.0 != last_road {
+                        return f64::INFINITY;
+                    }
+                }
                 penalty * self.map.edge(dir_edge.0).length
             },
             |i| self.map.node(i).dist_to(node2_pt),
