@@ -40,8 +40,6 @@ struct Config {
     /// With multiple intermediate waypoints, try to avoid routing on edges already used in a
     /// previous portion of the path. This is best-effort.
     avoid_doubling_back: bool,
-
-    restrict_to_same_road: bool,
     /// If false, the user can only drag waypoints after specifying the start and end of the route.
     /// If true, they can keep clicking to extend the end of the route.
     extend_route: bool,
@@ -50,6 +48,7 @@ struct Config {
     /// but `getConfig` will show this.
     #[serde(skip_deserializing)]
     area_mode: bool,
+    match_last_road: bool,
 }
 
 struct Router {
@@ -1021,27 +1020,20 @@ impl Router {
         node1: NodeID,
         node2: NodeID,
         prev_path: &Vec<PathEntry>,
-        config: &Config,
     ) -> Option<Vec<PathEntry>> {
         // Penalize visiting edges we've been to before, so that waypoints don't cause us to double
         // back
         // TODO Seems fast enough, but we could cache and build this up incrementally
         let mut avoid = HashSet::new();
+        let mut prev_edge_name = None;
+
         if self.config.avoid_doubling_back {
             for entry in prev_path {
                 if let PathEntry::Edge(e) = entry {
                     avoid.insert(e.0);
-                }
-            }
-        }
-
-        // Check if need to restrict the same road
-        let mut same_road = None;
-        if config.restrict_to_same_road {
-            for entry in prev_path.iter().rev() {
-                if let Path::Edge(e) = entry {
-                    same_road = Some(e.0);
-                    break;
+                    if self.config.match_last_road {
+                        prev_edge_name = Some(self.map.edge(e.0).name.clone());
+                    }
                 }
             }
         }
@@ -1053,28 +1045,14 @@ impl Router {
             node1,
             |i| i == node2,
             |(_, _, dir_edge)| {
-                let penalty = if avoid.contains(&dir_edge.0) {
+                let penalty = if avoid.contains(&dir_edge.0) || Some(self.map.edge(dir_edge.0).name.clone()) != prev_edge_name {
                     2.0
                 } else {
                     1.0
                 };
-
-                // Apply a penalty for edges not matching same road if required
-                if let Some(last_road) = same_road {
-                    if dir_edge.0 != last_road {
-                        return f64::INFINITY;
-                    }
-                }
-                // Convert Distance to f64
-                let edge_length = self.map.edge(dir_edge.0).length as f64;
-                penalty * edge_length
+                penalty * self.map.edge(dir_edge.0).length
             },
-            |i| {
-                let dist_to = self.map.node(i).dist_to(node2_pt);
-               
-                // Convert distance to f64
-                dist_to as f64
-            }
+            |i| self.map.node(i).dist_to(node2_pt),
         )?;
 
         let mut entries = Vec::new();
