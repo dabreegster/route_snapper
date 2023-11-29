@@ -1065,9 +1065,16 @@ impl Router {
                         return f64::INFINITY;
                     }
                 }
-                penalty * self.map.edge(dir_edge.0).length
+                // Convert Distance to f64
+                let edge_length = self.map.edge(dir_edge.0).length as f64;
+                penalty * edge_length
             },
-            |i| self.map.node(i).dist_to(node2_pt),
+            |i| {
+                let dist_to = self.map.node(i).dist_to(node2_pt);
+               
+                // Convert distance to f64
+                dist_to as f64
+            }
         )?;
 
         let mut entries = Vec::new();
