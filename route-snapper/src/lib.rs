@@ -1045,13 +1045,13 @@ impl Router {
             node1,
             |i| i == node2,
             |(_, _, dir_edge)| {
-                let penalty = if avoid.contains(&dir_edge.0) || Some(self.map.edge(dir_edge.0).name.clone()) != prev_edge_name {
+                let penalty = if avoid.contains(&dir_edge.0) || Some(&self.map.edge(dir_edge.0).name) != prev_edge_name {
                     2.0
                 } else {
                     1.0
                 };
                 penalty * self.map.edge(dir_edge.0).length
-            },
+             },
             |i| self.map.node(i).dist_to(node2_pt),
         )?;
 
