@@ -35,7 +35,7 @@ pub struct JsRouteSnapper {
     previous_states: Vec<Vec<Waypoint>>,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Serialize)]
 struct Config {
     /// With multiple intermediate waypoints, try to avoid routing on edges already used in a
     /// previous portion of the path. This is best-effort.
@@ -1032,7 +1032,7 @@ impl Router {
                 if let PathEntry::Edge(e) = entry {
                     avoid.insert(e.0);
                     if self.config.match_last_road {
-                        prev_edge_name = Some(self.map.edge(e.0).name.clone());
+                        prev_edge_name = Some(&self.map.edge(e.0).name);
                     }
                 }
             }
