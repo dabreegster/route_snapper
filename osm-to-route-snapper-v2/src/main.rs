@@ -6,9 +6,9 @@ use osm_to_route_snapper_v2::convert_osm;
 
 #[derive(Parser)]
 struct Args {
-    /// Path to a .osm.pbf file to convert
+    /// Path to a .osm.pbf or .xml file to convert
     #[arg(long)]
-    input_pbf: String,
+    input: String,
 
     /// Output file to write
     #[arg(long, default_value = "snap.bin")]
@@ -21,13 +21,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let snapper = convert_osm(
-        // TODO Read to bytes first, so we can be WASM friendly? Even though we won't be doing PBF
-        // from the web?
-        args.input_pbf,
-        !args.no_road_names,
-    )
-    .unwrap();
+    let snapper = convert_osm(std::fs::read(&args.input).unwrap(), !args.no_road_names).unwrap();
 
     let output = BufWriter::new(File::create(args.output).unwrap());
     bincode::serialize_into(output, &snapper).unwrap();

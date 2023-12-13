@@ -2,16 +2,16 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use geom::{GPSBounds, LonLat, PolyLine};
-use osmpbf::{Element, ElementReader};
+use osm_reader::{Element, WayID};
 
 use route_snapper_graph::{Edge, NodeID, RouteSnapperMap};
 
-/// Convert input OSM PBF data into a RouteSnapperMap, extracting all highway center-lines.
+/// Convert input OSM PBF or XML data into a RouteSnapperMap, extracting all highway center-lines.
 ///
 /// Does no clipping -- assumes the input has already been clipped to a boundary.
-pub fn convert_osm(osm_pbf_path: String, road_names: bool) -> Result<RouteSnapperMap> {
-    println!("Scraping OSM data from {osm_pbf_path}");
-    let (nodes, ways) = scrape_elements(&osm_pbf_path, road_names)?;
+pub fn convert_osm(input_bytes: Vec<u8>, road_names: bool) -> Result<RouteSnapperMap> {
+    println!("Scraping OSM data");
+    let (nodes, ways) = scrape_elements(&input_bytes, road_names)?;
     println!(
         "Got {} nodes and {} ways. Splitting into edges",
         nodes.len(),
@@ -20,76 +20,52 @@ pub fn convert_osm(osm_pbf_path: String, road_names: bool) -> Result<RouteSnappe
     Ok(split_edges(nodes, ways))
 }
 
-type OsmNodeID = i64;
-
 struct Way {
     name: Option<String>,
-    nodes: Vec<OsmNodeID>,
+    nodes: Vec<osm_reader::NodeID>,
 }
 
 fn scrape_elements(
-    path: &str,
+    input_bytes: &[u8],
     road_names: bool,
-) -> Result<(HashMap<OsmNodeID, LonLat>, HashMap<i64, Way>)> {
+) -> Result<(HashMap<osm_reader::NodeID, LonLat>, HashMap<WayID, Way>)> {
     // Scrape every node ID -> LonLat
     let mut nodes = HashMap::new();
     // Scrape every routable road
     let mut ways = HashMap::new();
 
-    let reader = ElementReader::from_path(path)?;
-    // TODO par_map_reduce would be fine if we can merge the hashmaps; there should be no repeated
-    // keys
-    reader.for_each(|element| {
-        match element {
-            Element::Node(node) => {
-                nodes.insert(
-                    node.id(),
-                    LonLat::new(
-                        1e-7 * node.decimicro_lon() as f64,
-                        1e-7 * node.decimicro_lat() as f64,
-                    ),
-                );
-            }
-            Element::DenseNode(node) => {
-                nodes.insert(
-                    node.id(),
-                    LonLat::new(
-                        1e-7 * node.decimicro_lon() as f64,
-                        1e-7 * node.decimicro_lat() as f64,
-                    ),
-                );
-            }
-            Element::Way(way) => {
-                let mut tags = HashMap::new();
-                for (k, v) in way.tags() {
-                    tags.insert(k, v);
-                }
-
-                if tags.contains_key("highway") {
-                    // TODO When the name is missing, we could fallback on other OSM tags. See
-                    // map_model::Road::get_name in A/B Street.
-                    let name = if road_names {
-                        tags.get("name").map(|x| x.to_string())
-                    } else {
-                        None
-                    };
-                    ways.insert(
-                        way.id(),
-                        Way {
-                            name,
-                            nodes: way.refs().collect(),
-                        },
-                    );
-                }
-            }
-            Element::Relation(_) => {}
+    osm_reader::parse(input_bytes, |elem| match elem {
+        Element::Node { id, lon, lat, .. } => {
+            nodes.insert(id, LonLat::new(lon, lat));
         }
+        Element::Way { id, node_ids, tags } => {
+            if tags.contains_key("highway") {
+                // TODO When the name is missing, we could fallback on other OSM tags. See
+                // map_model::Road::get_name in A/B Street.
+                let name = if road_names {
+                    tags.get("name").map(|x| x.to_string())
+                } else {
+                    None
+                };
+                ways.insert(
+                    id,
+                    Way {
+                        name,
+                        nodes: node_ids,
+                    },
+                );
+            }
+        }
+        Element::Relation { .. } => {}
     })?;
 
     Ok((nodes, ways))
 }
 
-fn split_edges(nodes: HashMap<OsmNodeID, LonLat>, ways: HashMap<i64, Way>) -> RouteSnapperMap {
+fn split_edges(
+    nodes: HashMap<osm_reader::NodeID, LonLat>,
+    ways: HashMap<WayID, Way>,
+) -> RouteSnapperMap {
     let mut gps_bounds = GPSBounds::new();
     for pt in nodes.values() {
         gps_bounds.update(*pt);
@@ -102,7 +78,7 @@ fn split_edges(nodes: HashMap<OsmNodeID, LonLat>, ways: HashMap<i64, Way>) -> Ro
     };
 
     // Count how many ways reference each node
-    let mut node_counter: HashMap<OsmNodeID, usize> = HashMap::new();
+    let mut node_counter: HashMap<osm_reader::NodeID, usize> = HashMap::new();
     for way in ways.values() {
         for node in &way.nodes {
             *node_counter.entry(*node).or_insert(0) += 1;
