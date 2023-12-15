@@ -1,74 +1,137 @@
 use std::collections::HashMap;
 
-use abstutil::Timer;
-use geom::LonLat;
+use anyhow::Result;
+use geom::{GPSBounds, LonLat, PolyLine};
+use log::info;
+use osm_reader::{Element, WayID};
 
 use route_snapper_graph::{Edge, NodeID, RouteSnapperMap};
 
-/// Convert input OSM XML data and a boundary GeoJSON string (with exactly one polygon) into a
-/// RouteSnapperMap, which can then be serialized and used.
-pub fn convert_osm(
-    input_osm: String,
-    boundary_geojson: Option<String>,
-    road_names: bool,
-) -> RouteSnapperMap {
-    let mut timer = Timer::new("convert OSM to route snapper graph");
-
-    let (streets, _) = streets_reader::osm_to_street_network(
-        &input_osm,
-        boundary_geojson.map(|geojson| {
-            let mut polygons = LonLat::parse_geojson_polygons(geojson).unwrap();
-            if polygons.len() != 1 {
-                panic!("boundary_geojson doesn't contain exactly one polygon");
-            }
-            polygons.pop().unwrap().0
-        }),
-        osm2streets::MapConfig::default(),
-        &mut timer,
-    )
-    .unwrap();
-    streets_to_snapper(&streets, road_names)
+/// Convert input OSM PBF or XML data into a RouteSnapperMap, extracting all highway center-lines.
+///
+/// Does no clipping -- assumes the input has already been clipped to a boundary.
+pub fn convert_osm(input_bytes: Vec<u8>, road_names: bool) -> Result<RouteSnapperMap> {
+    info!("Scraping OSM data");
+    let (nodes, ways) = scrape_elements(&input_bytes, road_names)?;
+    info!(
+        "Got {} nodes and {} ways. Splitting into edges",
+        nodes.len(),
+        ways.len(),
+    );
+    Ok(split_edges(nodes, ways))
 }
 
-fn streets_to_snapper(streets: &osm2streets::StreetNetwork, road_names: bool) -> RouteSnapperMap {
+struct Way {
+    name: Option<String>,
+    nodes: Vec<osm_reader::NodeID>,
+}
+
+fn scrape_elements(
+    input_bytes: &[u8],
+    road_names: bool,
+) -> Result<(HashMap<osm_reader::NodeID, LonLat>, HashMap<WayID, Way>)> {
+    // Scrape every node ID -> LonLat
+    let mut nodes = HashMap::new();
+    // Scrape every routable road
+    let mut ways = HashMap::new();
+
+    osm_reader::parse(input_bytes, |elem| match elem {
+        Element::Node { id, lon, lat, .. } => {
+            nodes.insert(id, LonLat::new(lon, lat));
+        }
+        Element::Way { id, node_ids, tags } => {
+            if tags.contains_key("highway") {
+                // TODO When the name is missing, we could fallback on other OSM tags. See
+                // map_model::Road::get_name in A/B Street.
+                let name = if road_names {
+                    tags.get("name").map(|x| x.to_string())
+                } else {
+                    None
+                };
+                ways.insert(
+                    id,
+                    Way {
+                        name,
+                        nodes: node_ids,
+                    },
+                );
+            }
+        }
+        Element::Relation { .. } => {}
+    })?;
+
+    Ok((nodes, ways))
+}
+
+fn split_edges(
+    nodes: HashMap<osm_reader::NodeID, LonLat>,
+    ways: HashMap<WayID, Way>,
+) -> RouteSnapperMap {
+    let mut gps_bounds = GPSBounds::new();
+    for pt in nodes.values() {
+        gps_bounds.update(*pt);
+    }
+
     let mut map = RouteSnapperMap {
-        gps_bounds: streets.gps_bounds.clone(),
+        gps_bounds,
         nodes: Vec::new(),
         edges: Vec::new(),
     };
 
-    let mut id_lookup = HashMap::new();
-    for i in streets.intersections.values() {
-        if i.roads.iter().all(|r| streets.roads[r].is_light_rail()) {
-            continue;
+    // Count how many ways reference each node
+    let mut node_counter: HashMap<osm_reader::NodeID, usize> = HashMap::new();
+    for way in ways.values() {
+        for node in &way.nodes {
+            *node_counter.entry(*node).or_insert(0) += 1;
         }
-
-        // The intersection's calculated polygon might not match up with road reference lines.
-        // Instead use an endpoint of any connecting road's reference line.
-        let road = &streets.roads[&i.roads[0]];
-        map.nodes.push(if road.src_i == i.id {
-            road.reference_line.first_pt()
-        } else {
-            road.reference_line.last_pt()
-        });
-
-        id_lookup.insert(i.id, NodeID(id_lookup.len() as u32));
-    }
-    for r in streets.roads.values() {
-        if r.is_light_rail() {
-            continue;
-        }
-        map.edges.push(Edge {
-            node1: id_lookup[&r.src_i],
-            node2: id_lookup[&r.dst_i],
-            geometry: r.reference_line.clone(),
-            length: r.reference_line.length(),
-            // TODO When the name is missing, we could fallback on other OSM tags. See
-            // map_model::Road::get_name in A/B Street.
-            name: if road_names { r.name.clone() } else { None },
-        });
     }
 
+    // Split each way into edges
+    let mut node_id_lookup = HashMap::new();
+    for way in ways.into_values() {
+        let mut node1 = way.nodes[0];
+        let mut pts = Vec::new();
+
+        let num_nodes = way.nodes.len();
+        for (idx, node) in way.nodes.into_iter().enumerate() {
+            pts.push(nodes[&node].to_pt(&map.gps_bounds));
+            // Edges start/end at intersections between two ways. The endpoints of the way also
+            // count as intersections.
+            let is_endpoint =
+                idx == 0 || idx == num_nodes - 1 || *node_counter.get(&node).unwrap() > 1;
+            if is_endpoint && pts.len() > 1 {
+                let next_id = NodeID(node_id_lookup.len() as u32);
+                let node1_id = *node_id_lookup.entry(node1).or_insert_with(|| {
+                    map.nodes.push(pts[0]);
+                    next_id
+                });
+                let next_id = NodeID(node_id_lookup.len() as u32);
+                let node2_id = *node_id_lookup.entry(node).or_insert_with(|| {
+                    map.nodes.push(*pts.last().unwrap());
+                    next_id
+                });
+                let geometry = PolyLine::unchecked_new(std::mem::take(&mut pts));
+                let length = geometry.length();
+                map.edges.push(Edge {
+                    node1: node1_id,
+                    node2: node2_id,
+                    geometry,
+                    length,
+                    name: way.name.clone(),
+                });
+
+                // Start the next edge
+                node1 = node;
+                pts.push(nodes[&node].to_pt(&map.gps_bounds));
+            }
+        }
+    }
+
+    info!(
+        "{} nodes and {} edges total",
+        map.nodes.len(),
+        map.edges.len()
+    );
     map
 }
 
@@ -82,13 +145,14 @@ static START: Once = Once::new();
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen()]
-pub fn convert(input_osm: String, boundary_geojson: String) -> Vec<u8> {
+pub fn convert(input_bytes: Vec<u8>, _boundary_geojson: String) -> Result<Vec<u8>, JsValue> {
     START.call_once(|| {
         console_log::init_with_level(log::Level::Info).unwrap();
         console_error_panic_hook::set_once();
     });
 
     let road_names = true;
-    let snapper = convert_osm(input_osm, Some(boundary_geojson), road_names);
-    bincode::serialize(&snapper).unwrap()
+    let snapper =
+        convert_osm(input_bytes, road_names).map_err(|err| JsValue::from_str(&err.to_string()))?;
+    Ok(bincode::serialize(&snapper).unwrap())
 }
