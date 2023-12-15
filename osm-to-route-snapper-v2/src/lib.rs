@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use geom::{GPSBounds, LonLat, PolyLine};
+use log::info;
 use osm_reader::{Element, WayID};
 
 use route_snapper_graph::{Edge, NodeID, RouteSnapperMap};
@@ -10,9 +11,9 @@ use route_snapper_graph::{Edge, NodeID, RouteSnapperMap};
 ///
 /// Does no clipping -- assumes the input has already been clipped to a boundary.
 pub fn convert_osm(input_bytes: Vec<u8>, road_names: bool) -> Result<RouteSnapperMap> {
-    println!("Scraping OSM data");
+    info!("Scraping OSM data");
     let (nodes, ways) = scrape_elements(&input_bytes, road_names)?;
-    println!(
+    info!(
         "Got {} nodes and {} ways. Splitting into edges",
         nodes.len(),
         ways.len(),
@@ -126,10 +127,32 @@ fn split_edges(
         }
     }
 
-    println!(
+    info!(
         "{} nodes and {} edges total",
         map.nodes.len(),
         map.edges.len()
     );
     map
+}
+
+#[cfg(target_arch = "wasm32")]
+use std::sync::Once;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
+static START: Once = Once::new();
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen()]
+pub fn convert(input_bytes: Vec<u8>, _boundary_geojson: String) -> Result<Vec<u8>, JsValue> {
+    START.call_once(|| {
+        console_log::init_with_level(log::Level::Info).unwrap();
+        console_error_panic_hook::set_once();
+    });
+
+    let road_names = true;
+    let snapper =
+        convert_osm(input_bytes, road_names).map_err(|err| JsValue::from_str(&err.to_string()))?;
+    Ok(bincode::serialize(&snapper).unwrap())
 }
