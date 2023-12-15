@@ -1,10 +1,9 @@
-use geom::{Distance, GPSBounds, PolyLine, Pt2D};
+use geo::{Coord, LineString};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct RouteSnapperMap {
-    pub gps_bounds: GPSBounds,
-    pub nodes: Vec<Pt2D>,
+    pub nodes: Vec<Coord>,
     pub edges: Vec<Edge>,
 }
 
@@ -12,9 +11,9 @@ pub struct RouteSnapperMap {
 pub struct Edge {
     pub node1: NodeID,
     pub node2: NodeID,
-    pub geometry: PolyLine,
+    pub geometry: LineString,
     #[serde(skip_serializing, skip_deserializing)]
-    pub length: Distance,
+    pub length_meters: f64,
     pub name: Option<String>,
 }
 
@@ -27,7 +26,7 @@ impl RouteSnapperMap {
     pub fn edge(&self, id: EdgeID) -> &Edge {
         &self.edges[id.0 as usize]
     }
-    pub fn node(&self, id: NodeID) -> Pt2D {
+    pub fn node(&self, id: NodeID) -> Coord {
         self.nodes[id.0 as usize]
     }
 }

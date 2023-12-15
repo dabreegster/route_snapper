@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
-use geom::{GPSBounds, LonLat, PolyLine};
+use geo::{Coord, HaversineLength, LineString};
 use log::info;
 use osm_reader::{Element, WayID};
 
@@ -29,15 +29,15 @@ struct Way {
 fn scrape_elements(
     input_bytes: &[u8],
     road_names: bool,
-) -> Result<(HashMap<osm_reader::NodeID, LonLat>, HashMap<WayID, Way>)> {
-    // Scrape every node ID -> LonLat
+) -> Result<(HashMap<osm_reader::NodeID, Coord>, HashMap<WayID, Way>)> {
+    // Scrape every node ID -> Coord
     let mut nodes = HashMap::new();
     // Scrape every routable road
     let mut ways = HashMap::new();
 
     osm_reader::parse(input_bytes, |elem| match elem {
         Element::Node { id, lon, lat, .. } => {
-            nodes.insert(id, LonLat::new(lon, lat));
+            nodes.insert(id, Coord { x: lon, y: lat });
         }
         Element::Way { id, node_ids, tags } => {
             if tags.contains_key("highway") {
@@ -64,16 +64,10 @@ fn scrape_elements(
 }
 
 fn split_edges(
-    nodes: HashMap<osm_reader::NodeID, LonLat>,
+    nodes: HashMap<osm_reader::NodeID, Coord>,
     ways: HashMap<WayID, Way>,
 ) -> RouteSnapperMap {
-    let mut gps_bounds = GPSBounds::new();
-    for pt in nodes.values() {
-        gps_bounds.update(*pt);
-    }
-
     let mut map = RouteSnapperMap {
-        gps_bounds,
         nodes: Vec::new(),
         edges: Vec::new(),
     };
@@ -94,7 +88,7 @@ fn split_edges(
 
         let num_nodes = way.nodes.len();
         for (idx, node) in way.nodes.into_iter().enumerate() {
-            pts.push(nodes[&node].to_pt(&map.gps_bounds));
+            pts.push(nodes[&node]);
             // Edges start/end at intersections between two ways. The endpoints of the way also
             // count as intersections.
             let is_endpoint =
@@ -110,19 +104,19 @@ fn split_edges(
                     map.nodes.push(*pts.last().unwrap());
                     next_id
                 });
-                let geometry = PolyLine::unchecked_new(std::mem::take(&mut pts));
-                let length = geometry.length();
+                let geometry = LineString::new(std::mem::take(&mut pts));
+                let length_meters = geometry.haversine_length();
                 map.edges.push(Edge {
                     node1: node1_id,
                     node2: node2_id,
                     geometry,
-                    length,
+                    length_meters,
                     name: way.name.clone(),
                 });
 
                 // Start the next edge
                 node1 = node;
-                pts.push(nodes[&node].to_pt(&map.gps_bounds));
+                pts.push(nodes[&node]);
             }
         }
     }
