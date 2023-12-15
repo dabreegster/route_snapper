@@ -74,7 +74,7 @@
     <script type="module">
       import init, {
         convert,
-      } from "./osm-to-route-snapper/pkg/osm_to_route_snapper.js";
+      } from "./osm-to-route-snapper-v2/pkg/osm_to_route_snapper_v2.js";
 
       await init();
 
@@ -113,14 +113,19 @@
         draw.deleteAll();
         let status = document.getElementById("status");
 
-        status.textContent = "Fetching from Overpass";
-        let resp = await fetch(overpassQueryForPolygon(polygon));
-        let osmXml = await resp.text();
+        try {
+          status.textContent = "Fetching from Overpass";
+          let resp = await fetch(overpassQueryForPolygon(polygon));
+          let osmXml = await resp.arrayBuffer();
 
-        status.textContent = `Importing OSM data (${osmXml.length} bytes) with osm2streets`;
-        let bytes = convert(osmXml, JSON.stringify(polygon));
-        status.textContent = `Graph file (${bytes.length} bytes) done, downloading`;
-        downloadGeneratedFile(bytes, "route-snapper-graph.bin");
+          status.textContent = `Importing OSM data (${osmXml.length} bytes)`;
+          let bytes = convert(new Uint8Array(osmXml), JSON.stringify(polygon));
+          status.textContent = `Graph file (${bytes.length} bytes) done, downloading`;
+          downloadGeneratedFile(bytes, "route-snapper-graph.bin");
+        } catch (err) {
+          status.textContent = `Error: ${err}`;
+          window.alert(`Error: ${err}`);
+        }
       }
 
       // Construct a query to extract all XML data in the polygon clip. See
