@@ -6,16 +6,12 @@ use osm_to_route_snapper::convert_osm;
 
 #[derive(Parser)]
 struct Args {
-    /// Path to a .osm.xml file to convert
-    #[arg(short, long)]
-    input_osm: String,
-
-    /// Path to GeoJSON file with the boundary to clip the input to
-    #[arg(short, long)]
-    boundary: Option<String>,
+    /// Path to a .osm.pbf or .xml file to convert
+    #[arg(long)]
+    input: String,
 
     /// Output file to write
-    #[arg(short, long, default_value = "snap.bin")]
+    #[arg(long, default_value = "snap.bin")]
     output: String,
 
     /// Omit road names from the output, saving some space.
@@ -25,12 +21,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let snapper = convert_osm(
-        std::fs::read_to_string(args.input_osm).unwrap(),
-        args.boundary
-            .map(|path| std::fs::read_to_string(path).unwrap()),
-        !args.no_road_names,
-    );
+    let snapper = convert_osm(std::fs::read(&args.input).unwrap(), !args.no_road_names).unwrap();
 
     let output = BufWriter::new(File::create(args.output).unwrap());
     bincode::serialize_into(output, &snapper).unwrap();
