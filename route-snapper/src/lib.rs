@@ -188,7 +188,6 @@ impl JsRouteSnapper {
                 self.router.config = config;
                 assert!(!self.router.config.area_mode);
                 self.route.recalculate_full_path(&self.router);
-                println!("New config: {:#?}", self.router.config.same_road_mode);
             }
             Err(err) => {
                 error!("Bad input to setRouteConfig: {err}");
