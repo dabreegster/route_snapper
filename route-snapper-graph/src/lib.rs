@@ -8,7 +8,7 @@ pub struct RouteSnapperMap {
     pub edges: Vec<Edge>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Edge {
     pub node1: NodeID,
     pub node2: NodeID,

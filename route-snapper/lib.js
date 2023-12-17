@@ -276,6 +276,12 @@ export class RouteSnapper {
         Area mode
       </label>
     </div>
+    <div>
+      <label>
+        <input type="checkbox" id="sameRoadMode" />
+        Same road mode
+      </label>
+    </div>
 
     <div id="snap_mode" style="background: red; color: white; padding: 8px">
       Snapping to transport network
@@ -314,10 +320,12 @@ export class RouteSnapper {
     let avoidDoublingBack = document.getElementById("avoidDoublingBack");
     let areaMode = document.getElementById("areaMode");
     let extendRoute = document.getElementById("extendRoute");
+    let sameRoadMode = document.getElementById("sameRoadMode");
     avoidDoublingBack.onclick = () => {
       this.inner.setRouteConfig({
         avoid_doubling_back: avoidDoublingBack.checked,
         extend_route: extendRoute.checked,
+        same_road_mode: sameRoadMode.checked,
       });
       this.#redraw();
     };
@@ -331,8 +339,17 @@ export class RouteSnapper {
         this.inner.setRouteConfig({
           avoid_doubling_back: avoidDoublingBack.checked,
           extend_route: extendRoute.checked,
+          same_road_mode: sameRoadMode.checked,
         });
       }
+      this.#redraw();
+    };
+    sameRoadMode.onclick = () => {
+      this.inner.setRouteConfig({
+        avoid_doubling_back: avoidDoublingBack.checked,
+        extend_route: extendRoute.checked,
+        same_road_mode: sameRoadMode.checked || false,
+      });
       this.#redraw();
     };
 
@@ -356,6 +373,7 @@ export class RouteSnapper {
     avoidDoublingBack.checked = config.avoid_doubling_back;
     extendRoute.checked = config.extend_route;
     areaMode.checked = config.area_mode;
+    sameRoadMode.checked = config.same_road_mode;
   }
 
   // Render the graph as GeoJSON points and line-strings, for debugging.

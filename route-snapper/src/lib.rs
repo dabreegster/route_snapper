@@ -48,6 +48,10 @@ struct Config {
     /// but `getConfig` will show this.
     #[serde(skip_deserializing)]
     area_mode: bool,
+
+    /// Only allow another point to be placed if the road or street is the same as the last point
+    /// placed. This is useful for drawing a route along a single street.
+    same_road_mode: bool,
 }
 
 struct Router {
@@ -184,6 +188,7 @@ impl JsRouteSnapper {
                 self.router.config = config;
                 assert!(!self.router.config.area_mode);
                 self.route.recalculate_full_path(&self.router);
+                println!("New config: {:#?}", self.router.config.same_road_mode);
             }
             Err(err) => {
                 error!("Bad input to setRouteConfig: {err}");
@@ -199,6 +204,7 @@ impl JsRouteSnapper {
             avoid_doubling_back: true,
             extend_route: true,
             area_mode: true,
+            same_road_mode: false,
         };
         self.route.recalculate_full_path(&self.router);
     }
@@ -320,17 +326,19 @@ impl JsRouteSnapper {
                                     }
                                 }
                             } else {
-                                // It'll be a straight line
-                                let pl = PolyLine::unchecked_new(vec![
-                                    self.router.map.node(*last),
-                                    self.router.map.node(current),
-                                ]);
-                                let mut props = serde_json::Map::new();
-                                props.insert("snapped".to_string(), false.into());
-                                result.push((
-                                    pl.to_geojson(Some(&self.router.map.gps_bounds)),
-                                    props,
-                                ));
+                                // It'll be a straight line if the same road mode is off
+                                if !self.router.config.same_road_mode {
+                                    let pl = PolyLine::unchecked_new(vec![
+                                        self.router.map.node(*last),
+                                        self.router.map.node(current),
+                                    ]);
+                                    let mut props = serde_json::Map::new();
+                                    props.insert("snapped".to_string(), false.into());
+                                    result.push((
+                                        pl.to_geojson(Some(&self.router.map.gps_bounds)),
+                                        props,
+                                    ));
+                                }
                             }
                         }
                         Waypoint::Free(pt) => {
@@ -996,11 +1004,14 @@ impl Route {
                 // (We don't need to do anything here -- the other point will get added)
             }
         }
+
         // Always add the last if it's different
         if let Some(last) = self.waypoints.last() {
-            let add = last.to_path_entry();
-            if self.full_path.last() != Some(&add) {
-                self.full_path.push(add);
+            if !router.config.same_road_mode {
+                let add = last.to_path_entry();
+                if self.full_path.last() != Some(&add) {
+                    self.full_path.push(add);
+                }
             }
         }
     }
@@ -1027,8 +1038,29 @@ impl Router {
         if self.config.avoid_doubling_back {
             for entry in prev_path {
                 if let PathEntry::Edge(e) = entry {
+                    web_sys::console::log_1(&format!("the path is {:?}", e.0).into());
                     avoid.insert(e.0);
                 }
+            }
+        }
+
+        if self.config.same_road_mode {
+            let node1_edges = self.graph.edges(node1);
+            let node2_edges = self.graph.edges(node2);
+            let node1_road_names: HashSet<_> = node1_edges
+                .map(|(_, _, dir_edge)| self.map.edge(dir_edge.0).name.clone())
+                .collect();
+            let node2_road_names: HashSet<_> = node2_edges
+                .map(|(_, _, dir_edge)| self.map.edge(dir_edge.0).name.clone())
+                .collect();
+
+            let common_road_names: HashSet<_> =
+                node1_road_names.intersection(&node2_road_names).collect();
+
+            // if the same road mode is on and they don't share a street then don't calculate a path for them
+
+            if common_road_names.is_empty() {
+                return None;
             }
         }
 
