@@ -110,6 +110,22 @@
 
       async function importPolygon(e) {
         let polygon = e.features[0];
+        // Uncomment to regenerate southwark.bin
+        /*let polygon = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [-0.113371, 51.474014],
+                [-0.113371, 51.500307],
+                [-0.071072, 51.500307],
+                [-0.071072, 51.474014],
+                [-0.113371, 51.474014],
+              ],
+            ],
+          },
+        };*/
         draw.deleteAll();
         let status = document.getElementById("status");
 

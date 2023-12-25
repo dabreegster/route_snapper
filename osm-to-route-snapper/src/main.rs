@@ -10,6 +10,10 @@ struct Args {
     #[arg(long)]
     input: String,
 
+    /// Path to GeoJSON file with the boundary to clip the input to
+    #[arg(short, long)]
+    boundary: Option<String>,
+
     /// Output file to write
     #[arg(long, default_value = "snap.bin")]
     output: String,
@@ -20,8 +24,15 @@ struct Args {
 }
 
 fn main() {
+    simple_logger::init_with_level(log::Level::Info).unwrap();
     let args = Args::parse();
-    let snapper = convert_osm(std::fs::read(&args.input).unwrap(), !args.no_road_names).unwrap();
+    let snapper = convert_osm(
+        std::fs::read(&args.input).unwrap(),
+        args.boundary
+            .map(|path| std::fs::read_to_string(path).unwrap()),
+        !args.no_road_names,
+    )
+    .unwrap();
 
     let output = BufWriter::new(File::create(args.output).unwrap());
     bincode::serialize_into(output, &snapper).unwrap();
