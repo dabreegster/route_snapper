@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
-use geo::{BooleanOps, Coord, HaversineLength, Intersects, LineString, MultiLineString, Polygon};
+use geo::{
+    BooleanOps, Contains, Coord, HaversineLength, Intersects, LineString, MultiLineString, Polygon,
+};
 use log::info;
 use osm_reader::{Element, WayID};
 
@@ -21,11 +23,17 @@ pub fn convert_osm(
         nodes.len(),
         ways.len(),
     );
-    let mut map = split_edges(nodes, ways);
+
+    let mut boundary = None;
     if let Some(gj_string) = boundary_gj {
         let gj: geojson::Feature = gj_string.parse()?;
         let boundary_geo: Polygon = gj.try_into()?;
-        clip(&mut map, boundary_geo);
+        boundary = Some(boundary_geo);
+    }
+
+    let mut map = split_edges(nodes, ways, boundary.as_ref());
+    if let Some(boundary) = boundary {
+        clip(&mut map, boundary);
     }
     Ok(map)
 }
@@ -75,6 +83,7 @@ fn scrape_elements(
 fn split_edges(
     nodes: HashMap<osm_reader::NodeID, Coord>,
     ways: HashMap<WayID, Way>,
+    boundary: Option<&Polygon>,
 ) -> RouteSnapperMap {
     let mut map = RouteSnapperMap {
         nodes: Vec::new(),
@@ -103,25 +112,35 @@ fn split_edges(
             let is_endpoint =
                 idx == 0 || idx == num_nodes - 1 || *node_counter.get(&node).unwrap() > 1;
             if is_endpoint && pts.len() > 1 {
-                let next_id = NodeID(node_id_lookup.len() as u32);
-                let node1_id = *node_id_lookup.entry(node1).or_insert_with(|| {
-                    map.nodes.push(pts[0]);
-                    next_id
-                });
-                let next_id = NodeID(node_id_lookup.len() as u32);
-                let node2_id = *node_id_lookup.entry(node).or_insert_with(|| {
-                    map.nodes.push(*pts.last().unwrap());
-                    next_id
-                });
                 let geometry = LineString::new(std::mem::take(&mut pts));
-                let length_meters = geometry.haversine_length();
-                map.edges.push(Edge {
-                    node1: node1_id,
-                    node2: node2_id,
-                    geometry,
-                    length_meters,
-                    name: way.name.clone(),
-                });
+                let mut add_road = true;
+                if let Some(boundary) = boundary {
+                    // If this road doesn't intersect the boundary at all, skip it
+                    if !boundary.contains(&geometry) && !boundary.exterior().intersects(&geometry) {
+                        add_road = false;
+                    }
+                }
+
+                if add_road {
+                    let next_id = NodeID(node_id_lookup.len() as u32);
+                    let node1_id = *node_id_lookup.entry(node1).or_insert_with(|| {
+                        map.nodes.push(geometry.0[0]);
+                        next_id
+                    });
+                    let next_id = NodeID(node_id_lookup.len() as u32);
+                    let node2_id = *node_id_lookup.entry(node).or_insert_with(|| {
+                        map.nodes.push(*geometry.0.last().unwrap());
+                        next_id
+                    });
+                    let length_meters = geometry.haversine_length();
+                    map.edges.push(Edge {
+                        node1: node1_id,
+                        node2: node2_id,
+                        geometry,
+                        length_meters,
+                        name: way.name.clone(),
+                    });
+                }
 
                 // Start the next edge
                 node1 = node;
