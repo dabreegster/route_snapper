@@ -7,6 +7,11 @@ changes.
 
 ## Unreleased
 
+## 0.3.0
+
+- Internally store WGS84 coordinates instead of Mercator (Breaking change to
+  the binary graph format!)
+
 ## 0.2.5
 
 - Undo support
