@@ -4,7 +4,7 @@ use anyhow::Result;
 use geo::{
     BooleanOps, Contains, Coord, HaversineLength, Intersects, LineString, MultiLineString, Polygon,
 };
-use log::info;
+use log::{debug, info};
 use osm_reader::{Element, WayID};
 
 use route_snapper_graph::{Edge, NodeID, RouteSnapperMap};
@@ -158,15 +158,15 @@ fn split_edges(
 }
 
 fn clip(map: &mut RouteSnapperMap, boundary: Polygon) {
-    // If we have edges totally out-of-bounds, that's harder to clean up
-
+    // Fix edges crossing the boundary. Edges totally outside the boundary are skipped earlier
+    // during split_edges.
     for edge in &mut map.edges {
         if boundary.exterior().intersects(&edge.geometry) {
             let invert = false;
             let mut multi_line_string =
                 boundary.clip(&MultiLineString::from(edge.geometry.clone()), invert);
             // If we have multiple pieces, that's hard to deal with
-            info!(
+            debug!(
                 "Shortening {:?} from {} to {}",
                 edge.name,
                 edge.geometry.haversine_length(),

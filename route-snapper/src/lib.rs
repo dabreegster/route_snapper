@@ -156,6 +156,9 @@ impl JsRouteSnapper {
             graph.add_edge(e.node2, e.node1, DirectedEdge(id, BACKWARDS));
         }
 
+        // Euclidean distance on WGS84 coordinates works because we're just finding the closest
+        // point to the cursor, and always in a pretty small area. Using GeodesicDistance as a
+        // distance function is an alternative.
         let mut nodes = Vec::new();
         for (idx, pt) in map.nodes.iter().enumerate() {
             nodes.push(GeomWithData::new([pt.x, pt.y], NodeID(idx as u32)));
