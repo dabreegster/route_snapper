@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-geom = { git = "https://github.com/a-b-street/abstreet" }
-serde = "1.0.188"
+geo = { version = "0.27.0" }
+serde = { version = "1.0.188", features = ["derive"] }
