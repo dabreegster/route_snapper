@@ -298,6 +298,15 @@ impl JsRouteSnapper {
             );
 
             if let (Some(last), Waypoint::Snapped(current)) = (self.route.waypoints.last(), hover) {
+                let node1 = match last.to_owned() {
+                    Waypoint::Snapped(node) => node,
+                    Waypoint::Free(pt) => self.mouseover_node(pt).unwrap(),
+                };
+
+                if !is_connected(node1, current, &self.router) {
+                    return String::from("[]");
+                }
+
                 // If we're trying to drag a point or it's a closed area, don't show this preview
                 if !self.route.is_closed_area()
                     && !self
@@ -326,7 +335,7 @@ impl JsRouteSnapper {
                                     }
                                 }
                             } else {
-                                // It'll be a straight line if the same road mode is off
+                                // It'll be a straight line if the same road mode is on
                                 if !self.router.config.same_road_mode {
                                     let pl = PolyLine::unchecked_new(vec![
                                         self.router.map.node(*last),
@@ -470,6 +479,7 @@ impl JsRouteSnapper {
                 };
                 // Don't keep every single update during a drag
                 let new_idx = self.route.move_waypoint(&self.router, idx, new_waypt);
+
                 self.mode = Mode::Dragging {
                     idx: new_idx,
                     at: new_waypt,
@@ -527,6 +537,7 @@ impl JsRouteSnapper {
                     if new_waypt != at {
                         // Don't keep every single update during a drag
                         let new_idx = self.route.move_waypoint(&self.router, idx, new_waypt);
+
                         self.mode = Mode::Dragging {
                             idx: new_idx,
                             at: new_waypt,
@@ -602,6 +613,23 @@ impl JsRouteSnapper {
                 // they meant to click and drag.
                 if self.route.full_path.contains(&hover.to_path_entry()) {
                     return;
+                }
+
+                if self.router.config.same_road_mode && self.route.waypoints.len() == 1 {
+                    let last = self.route.waypoints.last().unwrap();
+                    let last_pt = match *last {
+                        Waypoint::Snapped(node) => node,
+                        Waypoint::Free(pt) => self.mouseover_node(pt).unwrap(),
+                    };
+
+                    let hover_pt = match hover {
+                        Waypoint::Snapped(node) => node,
+                        Waypoint::Free(pt) => self.mouseover_node(pt).unwrap(),
+                    };
+
+                    if !is_connected(last_pt, hover_pt, &self.router) {
+                        return;
+                    }
                 }
 
                 self.before_update();
@@ -936,7 +964,23 @@ impl Route {
 
     // Returns the new full_path index
     fn move_waypoint(&mut self, router: &Router, full_idx: usize, new_waypt: Waypoint) -> usize {
+        if router.config.same_road_mode && full_idx > self.full_path.len() {
+            return 0;
+        }
         let old_waypt = self.full_path[full_idx].to_waypt().unwrap();
+
+        if router.config.same_road_mode {
+            // If we're moving the first point, don't allow it to be disconnected
+            if full_idx == 0 {
+                if let Waypoint::Snapped(node1) = old_waypt {
+                    if let Waypoint::Snapped(node2) = new_waypt {
+                        if !is_connected(node1, node2, router) {
+                            return 0;
+                        }
+                    }
+                }
+            }
+        }
 
         // Edge case when we've placed just one point, then try to drag it
         if self.waypoints.len() == 1 {
@@ -978,10 +1022,25 @@ impl Route {
         }
 
         self.recalculate_full_path(router);
+
+        if router.config.same_road_mode {
+            // If we're moving the last point, don't allow it to be disconnected
+            if full_idx == self.full_path.len() - 1 {
+                if let Waypoint::Snapped(node1) = new_waypt {
+                    if let Waypoint::Snapped(node2) = self.waypoints.last().unwrap() {
+                        if !is_connected(node1, *node2, router) {
+                            self.waypoints.pop();
+                            self.recalculate_full_path(router);
+                            return self.full_path.len() - 1;
+                        }
+                    }
+                }
+            }
+        }
         self.full_path
             .iter()
             .position(|x| x.to_waypt() == Some(new_waypt))
-            .unwrap()
+            .unwrap_or(0)
     }
 
     // It might be possible for callers to recalculate something smaller, but it's not worth the
@@ -1038,28 +1097,13 @@ impl Router {
         if self.config.avoid_doubling_back {
             for entry in prev_path {
                 if let PathEntry::Edge(e) = entry {
-                    web_sys::console::log_1(&format!("the path is {:?}", e.0).into());
                     avoid.insert(e.0);
                 }
             }
         }
 
         if self.config.same_road_mode {
-            let node1_edges = self.graph.edges(node1);
-            let node2_edges = self.graph.edges(node2);
-            let node1_road_names: HashSet<_> = node1_edges
-                .map(|(_, _, dir_edge)| self.map.edge(dir_edge.0).name.clone())
-                .collect();
-            let node2_road_names: HashSet<_> = node2_edges
-                .map(|(_, _, dir_edge)| self.map.edge(dir_edge.0).name.clone())
-                .collect();
-
-            let common_road_names: HashSet<_> =
-                node1_road_names.intersection(&node2_road_names).collect();
-
-            // if the same road mode is on and they don't share a street then don't calculate a path for them
-
-            if common_road_names.is_empty() {
+            if !is_connected(node1, node2, self) {
                 return None;
             }
         }
@@ -1149,4 +1193,27 @@ fn plain_list_names(names: BTreeSet<String>) -> String {
         write!(s, "{}", n).unwrap();
     }
     s
+}
+
+fn is_connected(node1: NodeID, node2: NodeID, router: &Router) -> bool {
+    let node1_edges = router.graph.edges(node1);
+    let node1_road_names: HashSet<_> = node1_edges
+        .map(|(_, _, dir_edge)| router.map.edge(dir_edge.0).name.clone())
+        .collect();
+
+    let node2_edges = router.graph.edges(node2);
+    let node2_road_names: HashSet<_> = node2_edges
+        .map(|(_, _, dir_edge)| router.map.edge(dir_edge.0).name.clone())
+        .collect();
+
+    let common_road_names: HashSet<_> = node1_road_names
+        .intersection(&node2_road_names)
+        .collect();
+
+    // If the new waypoint doesn't share a road name with the last waypoint, don't add it
+    if common_road_names.is_empty() {
+        return false;
+    }
+
+    return true;
 }

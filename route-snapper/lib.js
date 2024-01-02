@@ -279,7 +279,7 @@ export class RouteSnapper {
     <div>
       <label>
         <input type="checkbox" id="sameRoadMode" />
-        Same road mode
+        Only continue when the road name matches
       </label>
     </div>
 
@@ -348,7 +348,7 @@ export class RouteSnapper {
       this.inner.setRouteConfig({
         avoid_doubling_back: avoidDoublingBack.checked,
         extend_route: extendRoute.checked,
-        same_road_mode: sameRoadMode.checked || false,
+        same_road_mode: sameRoadMode.checked,
       });
       this.#redraw();
     };
@@ -402,6 +402,9 @@ export class RouteSnapper {
   #redraw() {
     if (this.loaded) {
       let gj = JSON.parse(this.inner.renderGeojson());
+      if (gj.length == 0) {
+        return;
+      }
       this.map.getSource("route-snapper").setData(gj);
       this.map.getCanvas().style.cursor = gj.cursor;
 
