@@ -298,8 +298,8 @@
             // For convenience, warp somewhere near that graph
             try {
               let gj = JSON.parse(routeSnapper?.debugRenderGraph());
-              // Assume nodes (Points) are first.
-              map.jumpTo({ center: gj.features[0].geometry.coordinates });
+              // Assume nodes (Points) are last.
+              map.jumpTo({ center: gj.features[gj.features.length - 1].geometry.coordinates });
             } catch (err) {
               console.log(`Couldn't warp to new graph: ${err}`);
             }

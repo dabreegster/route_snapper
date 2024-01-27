@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+- More details in `debugRenderGraph`
+
 ## 0.3.0
 
 - Internally store WGS84 coordinates instead of Mercator (Breaking change to

@@ -669,11 +669,19 @@ impl JsRouteSnapper {
     #[wasm_bindgen(js_name = debugRenderGraph)]
     pub fn debug_render_graph(&self) -> String {
         let mut features = Vec::new();
-        for pt in &self.router.map.nodes {
-            features.push(Feature::from(Geometry::from(&Point::from(*pt))));
+        for (idx, edge) in self.router.map.edges.iter().enumerate() {
+            let mut f = Feature::from(Geometry::from(&edge.geometry));
+            f.set_property("edge_id", idx);
+            f.set_property("node1", edge.node1.0);
+            f.set_property("node2", edge.node2.0);
+            f.set_property("length_meters", edge.length_meters);
+            f.set_property("name", edge.name.clone());
+            features.push(f);
         }
-        for edge in &self.router.map.edges {
-            features.push(Feature::from(Geometry::from(&edge.geometry)));
+        for (idx, pt) in self.router.map.nodes.iter().enumerate() {
+            let mut f = Feature::from(Geometry::from(&Point::from(*pt)));
+            f.set_property("node_id", idx);
+            features.push(f);
         }
         let gj =
             geojson::GeoJson::from(features.into_iter().collect::<geojson::FeatureCollection>());
