@@ -8,6 +8,7 @@ changes.
 ## Unreleased
 
 - More details in `debugRenderGraph`
+- Add a new tool to make graphs from a GeoJSON file
 
 ## 0.3.0
 
