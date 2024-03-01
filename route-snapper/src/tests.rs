@@ -155,7 +155,7 @@ fn test_area() {
     // Drag something in between 1 and 2
     let intermediate = find_intermediate_point(&snapper, WAYPT1, WAYPT2);
     // Just make sure it's not one of the arbitrary IDs we chose. Manually figured out this ID.
-    assert_eq!(intermediate, Waypoint::Snapped(NodeID(4868)));
+    assert_eq!(intermediate, Waypoint::Snapped(NodeID(6235)));
     drag(&mut snapper, intermediate, WAYPT4);
     // We should've introduced a new waypoint
     assert_eq!(
@@ -189,12 +189,9 @@ fn test_area() {
 
 // Simulate the mouse being somewhere
 fn optionally_mouseover_waypt(snapper: &mut JsRouteSnapper, waypt: Waypoint) {
-    let gps = snapper
-        .to_pt(waypt)
-        .to_pt2d()
-        .to_gps(&snapper.router.map.gps_bounds);
+    let pt = unhash_pt(snapper.to_pt(waypt));
     let circle_radius_meters = 1.0;
-    snapper.on_mouse_move(gps.x(), gps.y(), circle_radius_meters);
+    snapper.on_mouse_move(pt.x, pt.y, circle_radius_meters);
 }
 
 // Simulate the mouse being somewhere, then check the tool is hovering on that waypoint

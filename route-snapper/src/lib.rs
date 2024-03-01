@@ -750,6 +750,7 @@ impl JsRouteSnapper {
 impl JsRouteSnapper {
     // Snaps first to free-drawn points, then nodes
     fn mouseover_something(&self, pt: Coord, circle_radius_meters: f64) -> Option<Waypoint> {
+        // TODO For very long routes, this'll get slow
         for waypt in &self.route.waypoints {
             if let Waypoint::Free(x) = waypt {
                 if Point::from(*x).haversine_distance(&Point::from(pt)) < circle_radius_meters {
