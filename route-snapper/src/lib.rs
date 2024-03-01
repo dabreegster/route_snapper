@@ -143,8 +143,36 @@ impl JsRouteSnapper {
         info!("Got {} bytes, deserializing", map_bytes.len());
 
         let mut map: RouteSnapperMap = bincode::deserialize(map_bytes).map_err(err_to_js)?;
-        for edge in &mut map.edges {
+
+        if !map.override_forward_costs.is_empty()
+            && map.override_forward_costs.len() != map.edges.len()
+        {
+            return Err(JsValue::from_str(
+                "override_forward_costs length doesn't match edges length",
+            ));
+        }
+        if !map.override_backward_costs.is_empty()
+            && map.override_backward_costs.len() != map.edges.len()
+        {
+            return Err(JsValue::from_str(
+                "override_backward_costs length doesn't match edges length",
+            ));
+        }
+
+        for (idx, edge) in map.edges.iter_mut().enumerate() {
             edge.length_meters = edge.geometry.haversine_length();
+
+            if map.override_forward_costs.is_empty() {
+                edge.forward_cost = Some(edge.length_meters);
+            } else {
+                edge.forward_cost = map.override_forward_costs[idx];
+            }
+
+            if map.override_backward_costs.is_empty() {
+                edge.backward_cost = Some(edge.length_meters);
+            } else {
+                edge.backward_cost = map.override_backward_costs[idx];
+            }
         }
 
         info!("Finalizing JsRouteSnapper");
@@ -675,6 +703,8 @@ impl JsRouteSnapper {
             f.set_property("node1", edge.node1.0);
             f.set_property("node2", edge.node2.0);
             f.set_property("length_meters", edge.length_meters);
+            f.set_property("forward_cost", edge.forward_cost);
+            f.set_property("backward_cost", edge.backward_cost);
             f.set_property("name", edge.name.clone());
             features.push(f);
         }
@@ -1033,7 +1063,13 @@ impl Router {
                 } else {
                     1.0
                 };
-                penalty * self.map.edge(dir_edge.0).length_meters
+                let edge = self.map.edge(dir_edge.0);
+                let cost = if dir_edge.1 == FORWARDS {
+                    edge.forward_cost.unwrap()
+                } else {
+                    edge.backward_cost.unwrap()
+                };
+                penalty * cost
             },
             |i| Point::from(self.map.node(i)).haversine_distance(&Point::from(node2_pt)),
         )?;

@@ -1,15 +1,14 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use geo::{Coord, LineString};
 use geojson::de::deserialize_geometry;
 use serde::Deserialize;
 
 use route_snapper_graph::{Edge, NodeID, RouteSnapperMap};
 
-/// Converts GeoJSON into a graph for use with the route snapper. The GeoJSON must only contain
-/// LineStrings. Routing will only work if the LineStrings start and end at intersections between
-/// other LineStrings. Each feature may have an optional `name` string property.
+/// Converts GeoJSON into a graph for use with the route snapper. See the user guide for
+/// requirements about the GeoJSON file.
 pub fn convert_geojson(input_string: String) -> Result<RouteSnapperMap> {
     let input: Vec<InputEdge> =
         geojson::de::deserialize_feature_collection_str_to_vec(&input_string)?;
@@ -17,6 +16,8 @@ pub fn convert_geojson(input_string: String) -> Result<RouteSnapperMap> {
     let mut map = RouteSnapperMap {
         nodes: Vec::new(),
         edges: Vec::new(),
+        override_forward_costs: Vec::new(),
+        override_backward_costs: Vec::new(),
     };
 
     let mut node_to_id: HashMap<(isize, isize), NodeID> = HashMap::new();
@@ -37,9 +38,21 @@ pub fn convert_geojson(input_string: String) -> Result<RouteSnapperMap> {
             node1: node_to_id[&hashify_point(first_pt)],
             node2: node_to_id[&hashify_point(last_pt)],
             geometry: edge.geometry,
-            length_meters: 0.0,
             name: edge.name,
+
+            length_meters: 0.0,
+            forward_cost: None,
+            backward_cost: None,
         });
+        map.override_forward_costs.push(edge.forward_cost);
+        map.override_backward_costs.push(edge.backward_cost);
+    }
+
+    if map.override_forward_costs.iter().all(|x| x.is_none()) {
+        bail!("No edges set forward_cost. The input is probably incorrect.");
+    }
+    if map.override_backward_costs.iter().all(|x| x.is_none()) {
+        bail!("No edges set backward_cost. The input is probably incorrect.");
     }
 
     Ok(map)
@@ -50,6 +63,8 @@ pub struct InputEdge {
     #[serde(deserialize_with = "deserialize_geometry")]
     geometry: LineString,
     name: Option<String>,
+    forward_cost: Option<f64>,
+    backward_cost: Option<f64>,
 }
 
 fn hashify_point(pt: Coord) -> (isize, isize) {

@@ -88,6 +88,8 @@ fn split_edges(
     let mut map = RouteSnapperMap {
         nodes: Vec::new(),
         edges: Vec::new(),
+        override_forward_costs: Vec::new(),
+        override_backward_costs: Vec::new(),
     };
 
     // Count how many ways reference each node
@@ -132,13 +134,15 @@ fn split_edges(
                         map.nodes.push(*geometry.0.last().unwrap());
                         next_id
                     });
-                    let length_meters = geometry.haversine_length();
                     map.edges.push(Edge {
                         node1: node1_id,
                         node2: node2_id,
                         geometry,
-                        length_meters,
                         name: way.name.clone(),
+
+                        length_meters: 0.0,
+                        forward_cost: None,
+                        backward_cost: None,
                     });
                 }
 
