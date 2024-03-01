@@ -45,6 +45,12 @@
   </head>
   <body>
     <div id="top-left">
+      <div class="row">
+        <label
+          >Turn a GeoJSON file into a graph:
+          <input type="file" id="fileInput" />
+        </label>
+      </div>
       <p>
         Use the polygon tool on the top-right to select an area to import.
         (Double click or press enter to finish.) Wait a bit, then your browser
@@ -72,11 +78,15 @@
     <div id="map"></div>
 
     <script type="module">
-      import init, {
-        convert,
+      import initOsm, {
+        convert as convertOsm,
       } from "./osm-to-route-snapper/pkg/osm_to_route_snapper.js";
+      import initGj, {
+        convert as convertGj,
+      } from "./geojson-to-route-snapper/pkg/geojson_to_route_snapper.js";
 
-      await init();
+      await initOsm();
+      await initGj();
 
       let map = new maplibregl.Map({
         container: "map",
@@ -112,20 +122,20 @@
         let polygon = e.features[0];
         // Uncomment to regenerate southwark.bin
         /*let polygon = {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [
-              [
-                [-0.113371, 51.474014],
-                [-0.113371, 51.500307],
-                [-0.071072, 51.500307],
-                [-0.071072, 51.474014],
-                [-0.113371, 51.474014],
-              ],
-            ],
-          },
-        };*/
+                type: "Feature",
+                geometry: {
+                  type: "Polygon",
+                  coordinates: [
+                    [
+                      [-0.113371, 51.474014],
+                      [-0.113371, 51.500307],
+                      [-0.071072, 51.500307],
+                      [-0.071072, 51.474014],
+                      [-0.113371, 51.474014],
+                    ],
+                  ],
+                },
+              };*/
         draw.deleteAll();
         let status = document.getElementById("status");
 
@@ -135,7 +145,10 @@
           let osmXml = await resp.arrayBuffer();
 
           status.textContent = `Importing OSM data (${osmXml.length} bytes)`;
-          let bytes = convert(new Uint8Array(osmXml), JSON.stringify(polygon));
+          let bytes = convertOsm(
+            new Uint8Array(osmXml),
+            JSON.stringify(polygon),
+          );
           status.textContent = `Graph file (${bytes.length} bytes) done, downloading`;
           downloadGeneratedFile(bytes, "route-snapper-graph.bin");
         } catch (err) {
@@ -171,6 +184,26 @@
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       }
+
+      document
+        .getElementById("fileInput")
+        .addEventListener("change", function (event) {
+          let status = document.getElementById("status");
+          let file = event.target.files[0];
+          let reader = new FileReader();
+          reader.onload = function (event) {
+            let gjString = event.target.result;
+            try {
+              let bytes = convertGj(gjString);
+              status.textContent = `Graph file (${bytes.length} bytes) done, downloading`;
+              downloadGeneratedFile(bytes, "route-snapper-graph.bin");
+            } catch (err) {
+              status.textContent = `Error: ${err}`;
+              window.alert(`Error: ${err}`);
+            }
+          };
+          reader.readAsText(file);
+        });
     </script>
   </body>
 </html>

@@ -6,6 +6,8 @@ The plugin can draw routes on any
 [graph](https://github.com/dabreegster/route_snapper/blob/main/route-snapper-graph/src/lib.rs)
 that has coordinates defined for the edges.
 
+### From OpenStreetMap data
+
 A common use case is routing along a street network. You can create an example
 file from OpenStreetMap data. The easiest way to do this for smaller areas is
 [in your web browser](https://dabreegster.github.io/route_snapper/import.html).
@@ -20,6 +22,28 @@ cargo run --release \
   -i path_to_osm.xml \
   [-b path_to_boundary.geojson]
 ```
+
+### From custom GeoJSON files
+
+If you have a GeoJSON file with LineStrings representing routable edges in a
+network, you can turn this into a graph too. Try first [in your web
+browser](https://dabreegster.github.io/route_snapper/import.html) using the
+button at the top. For larger areas, install Rust and then:
+
+```
+cd geojson-to-route-snapper
+cargo run --release -- --input path_to_network.geojson
+```
+
+The LineStrings must represent edges, meaning the ends need to have the same
+coordinate as other LineStrings. Each LineString has some properties:
+
+- an optional numeric `forward_cost` and `backward_`cost
+- an optional string `name`
+
+If a cost is missing, the edge won't be routable in that direction. Costs
+**must** be specified for some of the edges in the file. Unlike the
+OpenStreetMap importer, distance is not used as a default cost.
 
 ## Adding to a MapLibre app
 
@@ -192,5 +216,5 @@ emphasizes adjusting waypoints easily, letting the user quickly "mold" whatever
 they have in mind.
 
 If you'd like to use this library for other purposes (like offline routing for
-end-users), you'll need to generate different graphs. Please file an issue to
-start a conversation about this!
+end-users), you'll need to generate custom graphs from GeoJSON. See the section
+above and please file an issue if you have any trouble.
