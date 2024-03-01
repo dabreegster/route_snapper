@@ -1,0 +1,14 @@
+{
+  "name": "geojson-to-route-snapper",
+  "version": "0.1.0",
+  "files": [
+    "geojson_to_route_snapper_bg.wasm",
+    "geojson_to_route_snapper.js",
+    "geojson_to_route_snapper.d.ts"
+  ],
+  "module": "geojson_to_route_snapper.js",
+  "types": "geojson_to_route_snapper.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
