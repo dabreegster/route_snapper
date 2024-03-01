@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+## 0.4.0
+
 - More details in `debugRenderGraph`
 - Add a new tool to make graphs from a GeoJSON file
 - Allow edges to have custom costs in each direction. This is a breaking change
