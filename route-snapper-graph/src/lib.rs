@@ -9,6 +9,12 @@ pub struct RouteSnapperMap {
     )]
     pub nodes: Vec<Coord>,
     pub edges: Vec<Edge>,
+
+    /// If empty, edges will have a forwards/backwards cost of their `length_meters` by default. If
+    /// non-empty, this must match the length of `edges` and specify a cost per edge. If a cost is
+    /// `None`, that edge won't be routable in the specified direction.
+    pub override_forward_costs: Vec<Option<f64>>,
+    pub override_backward_costs: Vec<Option<f64>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -20,9 +26,17 @@ pub struct Edge {
         deserialize_with = "deserialize_linestring"
     )]
     pub geometry: LineString,
+    pub name: Option<String>,
+
+    /// This will be calculated from the geometry. Don't serialize to minimize file sizes.
     #[serde(skip_serializing, skip_deserializing)]
     pub length_meters: f64,
-    pub name: Option<String>,
+    /// These will be calculated from `override_forward_costs`, `override_backward_costs`, and
+    /// `length_meters`. Don't serialize to minimize file sizes.
+    #[serde(skip_serializing, skip_deserializing)]
+    pub forward_cost: Option<f64>,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub backward_cost: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

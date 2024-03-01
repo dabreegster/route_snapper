@@ -9,6 +9,8 @@ changes.
 
 - More details in `debugRenderGraph`
 - Add a new tool to make graphs from a GeoJSON file
+- Allow edges to have custom costs in each direction. This is a breaking change
+  to the binary graph format!
 
 ## 0.3.0
 
