@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -180,9 +180,8 @@
           completedRoutes.features.push(e.detail);
           map.getSource("finished-routes").setData(completedRoutes);
           if (e.detail.geometry.type == "LineString") {
-            document.getElementById(
-              "status"
-            ).innerText = `Added new route of length ${e.detail.properties.length_meters} meters and name ${e.detail.properties.route_name}`;
+            document.getElementById("status").innerText =
+              `Added new route of length ${e.detail.properties.length_meters} meters and name ${e.detail.properties.route_name}`;
           } else {
             document.getElementById("status").innerText = `Added new area`;
           }
@@ -213,7 +212,7 @@
         document.getElementById("download").onclick = () => {
           downloadGeneratedFile(
             "route-snapper-results.geojson",
-            JSON.stringify(completedRoutes)
+            JSON.stringify(completedRoutes),
           );
         };
 
@@ -239,12 +238,12 @@
                   } else {
                     return true;
                   }
-                }
+                },
               );
               map.getSource("finished-routes").setData(completedRoutes);
 
               let roadName = routeSnapper.routeNameForWaypoints(
-                editFeature.properties.waypoints
+                editFeature.properties.waypoints,
               );
               console.log(`Editing route. Re-calculated name is ${roadName}`);
 
@@ -266,7 +265,7 @@
         routeSnapper = new RouteSnapper(
           map,
           graphBytes,
-          document.getElementById("snap-tool")
+          document.getElementById("snap-tool"),
         );
       } catch (err) {
         console.log(`Route tool broke: ${err}`);
@@ -278,7 +277,7 @@
         var element = document.createElement("a");
         element.setAttribute(
           "href",
-          "data:text/plain;charset=utf-8, " + encodeURIComponent(contents)
+          "data:text/plain;charset=utf-8, " + encodeURIComponent(contents),
         );
         element.setAttribute("download", filename);
         document.body.appendChild(element);
@@ -299,7 +298,10 @@
             try {
               let gj = JSON.parse(routeSnapper?.debugRenderGraph());
               // Assume nodes (Points) are last.
-              map.jumpTo({ center: gj.features[gj.features.length - 1].geometry.coordinates });
+              map.jumpTo({
+                center:
+                  gj.features[gj.features.length - 1].geometry.coordinates,
+              });
             } catch (err) {
               console.log(`Couldn't warp to new graph: ${err}`);
             }
