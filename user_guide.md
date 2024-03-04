@@ -38,10 +38,12 @@ cargo run --release -- --input path_to_network.geojson
 The LineStrings must represent edges, meaning the ends need to have the same
 coordinate as other LineStrings. Each LineString has some properties:
 
-- an optional numeric `forward_cost` and `backward_cost`
-   Costs **must** be specified for some of the edges in the file. 
-   If a cost is missing, the edge won't be routable in that direction. 
-- an optional string `name`
+- an optional numeric `forward_cost` and `backward_cost`.
+
+  Costs **must** be specified for some of the edges in the file. 
+  If a cost is missing, the edge won't be routable in that direction.
+  
+- an optional string `name`.
 
 Unlike the OpenStreetMap importer, distance is not used as a default cost.
 
