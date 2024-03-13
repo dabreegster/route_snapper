@@ -85,23 +85,13 @@
       </div>
     </div>
     <div id="map"></div>
-    <div id="snap-tool">
-      <div id="snap-progress">Route tool loading...</div>
-    </div>
+    <div id="snap-tool">Route tool loading...</div>
     <script type="module">
       // Use the locally built version
-      import {
-        fetchWithProgress,
-        init,
-        RouteSnapper,
-      } from "./route-snapper/pkg/lib.js";
+      import { init, RouteSnapper } from "./route-snapper/pkg/lib.js";
 
       // Comment the above and use the published NPM version instead:
-      /*import {
-        init,
-        RouteSnapper,
-        fetchWithProgress,
-      } from "https://unpkg.com/route-snapper/lib.js";*/
+      //import { init, RouteSnapper } from "https://unpkg.com/route-snapper/lib.js";
 
       let map = new maplibregl.Map({
         container: "map",
@@ -255,16 +245,13 @@
 
       await init();
 
-      const progressUpdateCallback = (progress) => {
-        document.getElementById("snap-progress").innerText = `${progress}%`;
-      };
-
       const url = `southwark.bin`;
       try {
-        const graphBytes = await fetchWithProgress(url, progressUpdateCallback);
+        let resp = await fetch(url);
+        let graphBytes = await resp.arrayBuffer();
         routeSnapper = new RouteSnapper(
           map,
-          graphBytes,
+          new Uint8Array(graphBytes),
           document.getElementById("snap-tool"),
         );
       } catch (err) {
