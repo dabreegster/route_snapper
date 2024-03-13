@@ -57,38 +57,31 @@ example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.h
 If you're using NPM, do `npm i route-snapper` and then in your JS:
 
 ```
-import { init, RouteSnapper, fetchWithProgress } from "route-snapper/lib.js";
+import { init, RouteSnapper } from "route-snapper/lib.js";
 ```
 
 You can also load from a CDN:
 
 ```
-import {
-  init,
-  RouteSnapper,
-  fetchWithProgress,
-} from "https://unpkg.com/route-snapper/lib.js";
+import { init, RouteSnapper } from "https://unpkg.com/route-snapper/lib.js";
 ```
 
 ### Setup
 
 To initialize the WASM library, you have to `await init()`.
 
-You'll need to get the raw graph file you built. You can do this however you like, such as using [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch). For convenience, the JS library includes a helper function `fetchWithProgress` that accepts a callback to return the progress towards your result being loaded.
+You'll need to get the raw graph file you built. You can do this however you like, such as using [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch).
 
 To create the route snapper, you need a MapLibre map (it can be initialized or not), the graph, and a `div` element for the plugin to render its controls. From the [example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.html), it might look like this:
 
 ```
 await init();
-let progressPercentage = 0;
 
-const graphBytes = await fetchWithProgress(
-  url,
-  ((progress) => progressPerecentage = progress)
-);
+let resp = await fetch(url);
+let graphBytes = await resp.arrayBuffer();
 let routeSnapper = new RouteSnapper(
   map,
-  graphBytes,
+  new Uint8Array(graphBytes),
   document.getElementById("snap-tool")
 );
 ```

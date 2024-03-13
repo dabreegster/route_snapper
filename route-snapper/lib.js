@@ -424,34 +424,3 @@ export class RouteSnapper {
     }
   }
 }
-
-export async function fetchWithProgress(url, setProgress = () => {}) {
-  const response = await fetch(url);
-  const reader = response.body.getReader();
-
-  const contentLength = response.headers.get("Content-Length");
-
-  let receivedLength = 0;
-  let chunks = [];
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-
-    chunks.push(value);
-    receivedLength += value.length;
-
-    const percent = (100.0 * receivedLength) / contentLength;
-    setProgress(percent);
-  }
-
-  let allChunks = new Uint8Array(receivedLength);
-  let position = 0;
-  for (let chunk of chunks) {
-    allChunks.set(chunk, position);
-    position += chunk.length;
-  }
-
-  return allChunks;
-}

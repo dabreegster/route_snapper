@@ -7,6 +7,9 @@ changes.
 
 ## Unreleased
 
+- Removed `fetchWithProgress`, which is a general-purpose utility method that
+  should come from another library
+
 ## 0.4.0
 
 - More details in `debugRenderGraph`
