@@ -31,10 +31,11 @@ pub fn convert_geojson(input_string: String) -> Result<RouteSnapperMap> {
     // Split each LineString into edges
     let mut node_id_lookup: HashMap<(isize, isize), NodeID> = HashMap::new();
     for edge in input {
-        let mut point1 = *edge.geometry.coords().next().unwrap();
+        let mut point1 = edge.geometry.0[0];
         let mut pts = Vec::new();
 
         let num_points = edge.geometry.coords_count();
+
         for (idx, pt) in edge.geometry.into_inner().into_iter().enumerate() {
             pts.push(pt);
             // Edges start/end at intersections between two LineStrings. The endpoints of the
@@ -49,12 +50,12 @@ pub fn convert_geojson(input_string: String) -> Result<RouteSnapperMap> {
                 let node1_id = *node_id_lookup
                     .entry(hashify_point(point1))
                     .or_insert_with(|| {
-                        map.nodes.push(geometry.0[0]);
+                        map.nodes.push(point1);
                         next_id
                     });
                 let next_id = NodeID(node_id_lookup.len() as u32);
                 let node2_id = *node_id_lookup.entry(hashify_point(pt)).or_insert_with(|| {
-                    map.nodes.push(*geometry.0.last().unwrap());
+                    map.nodes.push(pt);
                     next_id
                 });
                 map.edges.push(Edge {
@@ -69,11 +70,11 @@ pub fn convert_geojson(input_string: String) -> Result<RouteSnapperMap> {
                 });
                 map.override_forward_costs.push(edge.forward_cost);
                 map.override_backward_costs.push(edge.backward_cost);
-            }
 
-            // Start the next edge
-            point1 = pt;
-            pts.push(pt);
+                // Start the next edge
+                point1 = pt;
+                pts.push(pt);
+            }
         }
     }
 
