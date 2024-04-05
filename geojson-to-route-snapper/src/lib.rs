@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::{bail, Result};
-use geo::{Coord, LineString};
+use geo::{Coord, CoordsIter, LineString};
 use geojson::de::deserialize_geometry;
 use serde::Deserialize;
 
@@ -20,32 +20,61 @@ pub fn convert_geojson(input_string: String) -> Result<RouteSnapperMap> {
         override_backward_costs: Vec::new(),
     };
 
-    let mut node_to_id: HashMap<(isize, isize), NodeID> = HashMap::new();
-
-    for edge in input {
-        let first_pt = *edge.geometry.coords().next().unwrap();
-        let last_pt = *edge.geometry.coords().last().unwrap();
-
-        for pt in [first_pt, last_pt] {
-            let key = hashify_point(pt);
-            if !node_to_id.contains_key(&key) {
-                node_to_id.insert(key, NodeID(node_to_id.len() as u32));
-                map.nodes.push(pt);
-            }
+    // Count how many lines reference each point
+    let mut point_counter: HashMap<(isize, isize), usize> = HashMap::new();
+    for edge in &input {
+        for pt in edge.geometry.coords() {
+            *point_counter.entry(hashify_point(*pt)).or_insert(0) += 1;
         }
+    }
 
-        map.edges.push(Edge {
-            node1: node_to_id[&hashify_point(first_pt)],
-            node2: node_to_id[&hashify_point(last_pt)],
-            geometry: edge.geometry,
-            name: edge.name,
+    // Split each LineString into edges
+    let mut node_id_lookup: HashMap<(isize, isize), NodeID> = HashMap::new();
+    for edge in input {
+        let mut point1 = *edge.geometry.coords().next().unwrap();
+        let mut pts = Vec::new();
 
-            length_meters: 0.0,
-            forward_cost: None,
-            backward_cost: None,
-        });
-        map.override_forward_costs.push(edge.forward_cost);
-        map.override_backward_costs.push(edge.backward_cost);
+        let num_points = edge.geometry.coords_count();
+        for (idx, pt) in edge.geometry.into_inner().into_iter().enumerate() {
+            pts.push(pt);
+            // Edges start/end at intersections between two LineStrings. The endpoints of the
+            // LineString also count as intersections.
+            let is_endpoint = idx == 0
+                || idx == num_points - 1
+                || *point_counter.get(&hashify_point(pt)).unwrap() > 1;
+            if is_endpoint && pts.len() > 1 {
+                let geometry = LineString::new(std::mem::take(&mut pts));
+
+                let next_id = NodeID(node_id_lookup.len() as u32);
+                let node1_id = *node_id_lookup
+                    .entry(hashify_point(point1))
+                    .or_insert_with(|| {
+                        map.nodes.push(geometry.0[0]);
+                        next_id
+                    });
+                let next_id = NodeID(node_id_lookup.len() as u32);
+                let node2_id = *node_id_lookup.entry(hashify_point(pt)).or_insert_with(|| {
+                    map.nodes.push(*geometry.0.last().unwrap());
+                    next_id
+                });
+                map.edges.push(Edge {
+                    node1: node1_id,
+                    node2: node2_id,
+                    geometry,
+                    name: edge.name.clone(),
+
+                    length_meters: 0.0,
+                    forward_cost: None,
+                    backward_cost: None,
+                });
+                map.override_forward_costs.push(edge.forward_cost);
+                map.override_backward_costs.push(edge.backward_cost);
+            }
+
+            // Start the next edge
+            point1 = pt;
+            pts.push(pt);
+        }
     }
 
     if map.override_forward_costs.iter().all(|x| x.is_none()) {
