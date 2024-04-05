@@ -35,13 +35,18 @@ cd geojson-to-route-snapper
 cargo run --release -- --input path_to_network.geojson
 ```
 
-The LineStrings must represent edges, meaning the ends need to have the same
-coordinate as other LineStrings. Each LineString has some properties:
+For routing to work, the LineStrings must share points with other LineStrings.
+If you have one long LineString touching many others and the points are the
+same, these will be split into edges automatically. LineStrings that cross but
+don't share points (within 7 decimal places) won't connect.
+
+Each LineString has some properties:
 
 - an optional numeric `forward_cost` and `backward_cost`.
 
-  Costs **must** be specified for some of the edges in the file. 
-  If a cost is missing, the edge won't be routable in that direction.
+  Costs **must** be specified for some of the edges in the file. If a cost is
+  missing, the edge won't be routable in that direction. Use `null` to indicate
+  the edge isn't routable at all in that direction.
   
 - an optional string `name`.
 
