@@ -14,10 +14,12 @@
   "scripts": {
     "tsc": "tsc -p tsconfig.json",
     "prepublishOnly": "npm run tsc",
-    "prepare": "npm run prepublishOnly"
+    "prepare": "npm run prepublishOnly",
+    "fmt": "prettier --write ."
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.14",
+    "prettier": "^3.2.5",
     "typescript": "^5.4.5"
   },
   "dependencies": {

@@ -5,37 +5,39 @@ import { JsRouteSnapper } from "route-snapper";
 const snapDistancePixels = 30;
 
 interface Writable<T> {
-        set(value: T): void;
+  set(value: T): void;
 }
 
 // TODO This isn't complete
 export interface Props {
-        waypoints: Waypoint[];
+  waypoints: Waypoint[];
 }
 
 export interface Waypoint {
-        lon: number;
-        lat: number;
-        snapped: boolean;
+  lon: number;
+  lat: number;
+  snapped: boolean;
 }
 
 export class RouteTool {
   map: Map;
   inner: JsRouteSnapper;
   active: boolean;
-  eventListenersSuccess: ((
-    f: Feature<LineString | Polygon, Props>,
-  ) => void)[];
-  eventListenersUpdated: ((
-    f: Feature<LineString | Polygon, Props>,
-  ) => void)[];
+  eventListenersSuccess: ((f: Feature<LineString | Polygon, Props>) => void)[];
+  eventListenersUpdated: ((f: Feature<LineString | Polygon, Props>) => void)[];
   eventListenersFailure: (() => void)[];
 
   routeToolGj: Writable<GeoJSON>;
   snapMode: Writable<boolean>;
   undoLength: Writable<number>;
 
-  constructor(map: Map, graphBytes: Uint8Array, routeToolGj: Writable<GeoJSON>, snapMode: Writable<boolean>, undoLength: Writable<number>) {
+  constructor(
+    map: Map,
+    graphBytes: Uint8Array,
+    routeToolGj: Writable<GeoJSON>,
+    snapMode: Writable<boolean>,
+    undoLength: Writable<number>,
+  ) {
     this.map = map;
     console.time("Deserialize and setup JsRouteSnapper");
     this.inner = new JsRouteSnapper(graphBytes);
@@ -45,9 +47,9 @@ export class RouteTool {
     this.eventListenersUpdated = [];
     this.eventListenersFailure = [];
 
-          this.routeToolGj = routeToolGj;
-          this.snapMode = snapMode;
-          this.undoLength = undoLength;
+    this.routeToolGj = routeToolGj;
+    this.snapMode = snapMode;
+    this.undoLength = undoLength;
 
     this.map.on("mousemove", this.onMouseMove);
     this.map.on("click", this.onClick);
