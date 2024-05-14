@@ -19,5 +19,9 @@
   "devDependencies": {
     "@types/geojson": "^7946.0.14",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "maplibre-gl": "^4.0.0",
+    "route-snapper": "^0.4.0"
   }
 }
