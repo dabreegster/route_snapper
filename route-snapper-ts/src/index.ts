@@ -10,8 +10,13 @@ interface Writable<T> {
   set(value: T): void;
 }
 
-// TODO This isn't complete
-export interface Props {
+export interface RouteProps {
+  waypoints: Waypoint[];
+  length_meters: number;
+  route_name: string;
+}
+
+export interface AreaProps {
   waypoints: Waypoint[];
 }
 
@@ -25,8 +30,12 @@ export class RouteTool {
   map: Map;
   inner: JsRouteSnapper;
   active: boolean;
-  eventListenersSuccess: ((f: Feature<LineString | Polygon, Props>) => void)[];
-  eventListenersUpdated: ((f: Feature<LineString | Polygon, Props>) => void)[];
+  eventListenersSuccess: ((
+    f: Feature<LineString, RouteProps> | Feature<Polygon, AreaProps>,
+  ) => void)[];
+  eventListenersUpdated: ((
+    f: Feature<LineString, RouteProps> | Feature<Polygon, AreaProps>,
+  ) => void)[];
   eventListenersFailure: (() => void)[];
 
   routeToolGj: Writable<GeoJSON>;
@@ -206,7 +215,7 @@ export class RouteTool {
   // properties returned originally. If waypoints are missing (maybe because
   // the route was produced by a different tool, or an older version of this
   // tool), the edited line-string may differ from the input.
-  editExistingRoute(feature: Feature<LineString, Props>) {
+  editExistingRoute(feature: Feature<LineString, RouteProps>) {
     if (this.active) {
       window.alert("Bug: editExistingRoute called when tool is already active");
     }
@@ -238,7 +247,7 @@ export class RouteTool {
   }
 
   // This only handles features previously returned by this tool.
-  editExistingArea(feature: Feature<Polygon, Props>) {
+  editExistingArea(feature: Feature<Polygon, AreaProps>) {
     if (this.active) {
       window.alert("Bug: editExistingArea called when tool is already active");
     }
@@ -255,12 +264,16 @@ export class RouteTool {
   }
 
   addEventListenerSuccess(
-    callback: (f: Feature<LineString | Polygon, Props>) => void,
+    callback: (
+      f: Feature<LineString, RouteProps> | Feature<Polygon, AreaProps>,
+    ) => void,
   ) {
     this.eventListenersSuccess.push(callback);
   }
   addEventListenerUpdated(
-    callback: (f: Feature<LineString | Polygon, Props>) => void,
+    callback: (
+      f: Feature<LineString, RouteProps> | Feature<Polygon, AreaProps>,
+    ) => void,
   ) {
     this.eventListenersUpdated.push(callback);
   }
@@ -283,7 +296,11 @@ export class RouteTool {
     if (rawJSON) {
       // Pass copies to each callback
       for (let cb of this.eventListenersSuccess) {
-        cb(JSON.parse(rawJSON) as Feature<LineString | Polygon, Props>);
+        cb(
+          JSON.parse(rawJSON) as
+            | Feature<LineString, RouteProps>
+            | Feature<Polygon, AreaProps>,
+        );
       }
     } else {
       for (let cb of this.eventListenersFailure) {
@@ -335,7 +352,11 @@ export class RouteTool {
     if (rawJSON) {
       // Pass copies to each callback
       for (let cb of this.eventListenersUpdated) {
-        cb(JSON.parse(rawJSON) as Feature<LineString | Polygon, Props>);
+        cb(
+          JSON.parse(rawJSON) as
+            | Feature<LineString, RouteProps>
+            | Feature<Polygon, AreaProps>,
+        );
       }
     }
   }
