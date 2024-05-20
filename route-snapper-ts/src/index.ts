@@ -1,8 +1,9 @@
 import type { Feature, GeoJSON, LineString, Polygon, Position } from "geojson";
 import type { Map, MapMouseEvent } from "maplibre-gl";
 import init, { JsRouteSnapper } from "route-snapper";
+import { splitRoute } from "./split";
 
-export { init };
+export { init, splitRoute };
 
 const snapDistancePixels = 30;
 

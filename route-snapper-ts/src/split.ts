@@ -112,6 +112,6 @@ function distanceAlongLine(line: Feature<LineString>, point: Feature<Point>) {
 
 // Per https://datatracker.ietf.org/doc/html/rfc7946#section-11.2, 6 decimal
 // places (10cm) is plenty of precision
-export function setPrecision(pt: Position): Position {
+function setPrecision(pt: Position): Position {
   return [Math.round(pt[0] * 10e6) / 10e6, Math.round(pt[1] * 10e6) / 10e6];
 }
