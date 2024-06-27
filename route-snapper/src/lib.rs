@@ -718,6 +718,18 @@ impl JsRouteSnapper {
         serde_json::to_string_pretty(&gj).unwrap()
     }
 
+    /// Render the graph as GeoJSON points, for helping the user understand the snappable nodes.
+    #[wasm_bindgen(js_name = debugSnappableNodes)]
+    pub fn debug_snappable_nodes(&self) -> String {
+        let mut features = Vec::new();
+        for pt in &self.router.map.nodes {
+            features.push(Feature::from(Geometry::from(&Point::from(*pt))));
+        }
+        let gj =
+            geojson::GeoJson::from(features.into_iter().collect::<geojson::FeatureCollection>());
+        serde_json::to_string(&gj).unwrap()
+    }
+
     #[wasm_bindgen(js_name = routeNameForWaypoints)]
     pub fn route_name_for_waypoints(&self, raw_waypoints: JsValue) -> Result<String, JsValue> {
         let waypoints: Vec<RouteWaypoint> = serde_wasm_bindgen::from_value(raw_waypoints)?;

@@ -7,10 +7,13 @@ changes.
 
 ## Unreleased
 
+## 0.4.1
+
 - Removed `fetchWithProgress`, which is a general-purpose utility method that
   should come from another library
 - Improved the tool that makes graphs from GeoJSON files by splitting
   LineStrings that touch at interior points
+- Added `debugSnappableNodes` as a faster alternative to `debugRenderGraph`
 
 ## 0.4.0
 
