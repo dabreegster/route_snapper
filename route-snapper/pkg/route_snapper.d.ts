@@ -64,6 +64,11 @@ export class JsRouteSnapper {
 */
   debugRenderGraph(): string;
 /**
+* Render the graph as GeoJSON points, for helping the user understand the snappable nodes.
+* @returns {string}
+*/
+  debugSnappableNodes(): string;
+/**
 * @param {any} raw_waypoints
 * @returns {string}
 */
@@ -97,6 +102,7 @@ export interface InitOutput {
   readonly jsroutesnapper_clearState: (a: number) => void;
   readonly jsroutesnapper_editExisting: (a: number, b: number, c: number) => void;
   readonly jsroutesnapper_debugRenderGraph: (a: number, b: number) => void;
+  readonly jsroutesnapper_debugSnappableNodes: (a: number, b: number) => void;
   readonly jsroutesnapper_routeNameForWaypoints: (a: number, b: number, c: number) => void;
   readonly jsroutesnapper_addSnappedWaypoint: (a: number, b: number, c: number) => void;
   readonly jsroutesnapper_undo: (a: number) => void;

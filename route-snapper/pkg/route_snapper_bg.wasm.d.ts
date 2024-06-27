@@ -16,6 +16,7 @@ export function jsroutesnapper_onMouseUp(a: number): number;
 export function jsroutesnapper_clearState(a: number): void;
 export function jsroutesnapper_editExisting(a: number, b: number, c: number): void;
 export function jsroutesnapper_debugRenderGraph(a: number, b: number): void;
+export function jsroutesnapper_debugSnappableNodes(a: number, b: number): void;
 export function jsroutesnapper_routeNameForWaypoints(a: number, b: number, c: number): void;
 export function jsroutesnapper_addSnappedWaypoint(a: number, b: number, c: number): void;
 export function jsroutesnapper_undo(a: number): void;

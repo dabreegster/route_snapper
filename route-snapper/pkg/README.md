@@ -154,6 +154,7 @@ If you're using the WASM API directly, the best reference is currently [the code
     - A numeric `undo_length`
 - `toggleSnapMode` attempts to switch between snapping and freehand drawing. It may not succeed.
 - `addSnappedWaypoint` adds a new waypoint to the end of the route, snapping to the nearest node. It's useful for clients to hook up a geocoder and add a point by address. Unsupported in area mode.
+- `debugSnappableNodes` returns a FeatureCollection of Points with no properties, for showing the user all snappable nodes
 
 ### MapLibre gotchas
 
