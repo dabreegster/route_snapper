@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+- The OSM importer can now handle MultiPolygon boundaries for clipping
+
 ## 0.4.1
 
 - Removed `fetchWithProgress`, which is a general-purpose utility method that

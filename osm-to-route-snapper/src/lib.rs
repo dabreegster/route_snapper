@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use geo::{
-    BooleanOps, Contains, Coord, HaversineLength, Intersects, LineString, MultiLineString, Polygon,
+    BooleanOps, Contains, Coord, HaversineLength, Intersects, LineString, MultiLineString,
+    MultiPolygon,
 };
 use log::{debug, info};
 use osm_reader::{Element, WayID};
@@ -10,7 +11,7 @@ use osm_reader::{Element, WayID};
 use route_snapper_graph::{Edge, NodeID, RouteSnapperMap};
 
 /// Convert input OSM PBF or XML data into a RouteSnapperMap, extracting all highway center-lines.
-/// If a boundary polygon is specified, clips roads to this boundary.
+/// If a boundary polygon or multipolygon is specified, clips roads to this boundary.
 pub fn convert_osm(
     input_bytes: Vec<u8>,
     boundary_gj: Option<String>,
@@ -27,7 +28,14 @@ pub fn convert_osm(
     let mut boundary = None;
     if let Some(gj_string) = boundary_gj {
         let gj: geojson::Feature = gj_string.parse()?;
-        let boundary_geo: Polygon = gj.try_into()?;
+        let boundary_geo: MultiPolygon = if matches!(
+            gj.geometry.as_ref().unwrap().value,
+            geojson::Value::Polygon(_)
+        ) {
+            MultiPolygon(vec![gj.try_into()?])
+        } else {
+            gj.try_into()?
+        };
         boundary = Some(boundary_geo);
     }
 
@@ -83,7 +91,7 @@ fn scrape_elements(
 fn split_edges(
     nodes: HashMap<osm_reader::NodeID, Coord>,
     ways: HashMap<WayID, Way>,
-    boundary: Option<&Polygon>,
+    boundary: Option<&MultiPolygon>,
 ) -> RouteSnapperMap {
     let mut map = RouteSnapperMap {
         nodes: Vec::new(),
@@ -118,7 +126,9 @@ fn split_edges(
                 let mut add_road = true;
                 if let Some(boundary) = boundary {
                     // If this road doesn't intersect the boundary at all, skip it
-                    if !boundary.contains(&geometry) && !boundary.exterior().intersects(&geometry) {
+                    if !boundary.contains(&geometry)
+                        && !boundary.iter().any(|p| p.exterior().intersects(&geometry))
+                    {
                         add_road = false;
                     }
                 }
@@ -161,11 +171,14 @@ fn split_edges(
     map
 }
 
-fn clip(map: &mut RouteSnapperMap, boundary: Polygon) {
+fn clip(map: &mut RouteSnapperMap, boundary: MultiPolygon) {
     // Fix edges crossing the boundary. Edges totally outside the boundary are skipped earlier
     // during split_edges.
     for edge in &mut map.edges {
-        if boundary.exterior().intersects(&edge.geometry) {
+        if boundary
+            .iter()
+            .any(|p| p.exterior().intersects(&edge.geometry))
+        {
             let invert = false;
             let mut multi_line_string =
                 boundary.clip(&MultiLineString::from(edge.geometry.clone()), invert);
