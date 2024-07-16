@@ -13,8 +13,9 @@ file from OpenStreetMap data. The easiest way to do this for smaller areas is
 [in your web browser](https://dabreegster.github.io/route_snapper/import.html).
 
 For larger areas, you need an `.osm.xml` or `.osm.pbf` file, and optionally a
-GeoJSON file with one polygon representing the boundary of your area. You'll
-need to [install Rust](https://www.rust-lang.org/tools/install) to run this:
+GeoJSON file with one polygon or multipolygon representing the boundary of your
+area. You'll need to [install Rust](https://www.rust-lang.org/tools/install) to
+run this:
 
 ```
 cd osm-to-route-snapper
