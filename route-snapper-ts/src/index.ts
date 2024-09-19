@@ -15,7 +15,10 @@ export interface RouteProps {
   waypoints: Waypoint[];
   length_meters: number;
   route_name: string;
+  full_path: Node[];
 }
+
+export type Node = { snapped: number } | { free: [number, number] };
 
 export interface AreaProps {
   waypoints: Waypoint[];

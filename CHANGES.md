@@ -8,6 +8,7 @@ changes.
 ## Unreleased
 
 - The OSM importer can now handle MultiPolygon boundaries for clipping
+- The final route feature has a new `full_path` property, with every snapped and freehand node
 
 ## 0.4.1
 

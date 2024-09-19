@@ -258,6 +258,32 @@ impl JsRouteSnapper {
             let to_name = self.name_waypoint(self.route.waypoints.last().as_ref().unwrap());
             f.set_property("route_name", format!("Route from {from_name} to {to_name}"));
 
+            let mut full_path = Vec::new();
+            for entry in &self.route.full_path {
+                match entry {
+                    PathEntry::SnappedPoint(node) => {
+                        full_path.push(
+                            serde_json::to_value(&JsonNode {
+                                snapped: Some(node.0),
+                                free: None,
+                            })
+                            .unwrap(),
+                        );
+                    }
+                    PathEntry::FreePoint(pt) => {
+                        full_path.push(
+                            serde_json::to_value(&JsonNode {
+                                snapped: None,
+                                free: Some([trim_lon_lat(pt.x), trim_lon_lat(pt.y)]),
+                            })
+                            .unwrap(),
+                        );
+                    }
+                    PathEntry::Edge(_) => {}
+                }
+            }
+            f.set_property("full_path", serde_json::Value::Array(full_path));
+
             f
         };
 
@@ -1157,4 +1183,12 @@ fn unhash_pt(pt: HashedPoint) -> Coord {
         x: pt.0 as f64 / 10e6,
         y: pt.1 as f64 / 10e6,
     }
+}
+
+#[derive(Serialize)]
+struct JsonNode {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    snapped: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    free: Option<[f64; 2]>,
 }
