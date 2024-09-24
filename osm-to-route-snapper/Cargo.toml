@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 anyhow = "1.0.75"
 bincode = "1.3.3"
-geo = "0.27.0"
+geo = "0.28.0"
 geojson = { git = "https://github.com/georust/geojson", features = ["geo-types"] }
 log = "0.4.20"
 osm-reader = { git = "https://github.com/a-b-street/osm-reader" }

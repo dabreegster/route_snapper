@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+- Upgrade Rust geo dependencies
+
 ## 0.4.2
 
 - The OSM importer can now handle MultiPolygon boundaries for clipping
