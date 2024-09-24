@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+## 0.4.3
+
 - Upgrade Rust geo dependencies
 
 ## 0.4.2
