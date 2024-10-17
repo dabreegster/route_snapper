@@ -81,6 +81,21 @@ export class JsRouteSnapper {
 /**
 */
   undo(): void;
+/**
+* Experimental new stateless API. From a list of waypoints, return a Feature with the full
+* geometry and properties. Note this internally modifies state.
+* @param {any} raw_waypoints
+* @returns {string}
+*/
+  calculateRoute(raw_waypoints: any): string;
+/**
+* Experimental new stateless API. From exactly two waypoints, return a list of extra
+* intermediate snappable nodes. Note this internally modifies state.
+* @param {any} raw_waypt1
+* @param {any} raw_waypt2
+* @returns {string}
+*/
+  getExtraNodes(raw_waypt1: any, raw_waypt2: any): string;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -106,6 +121,8 @@ export interface InitOutput {
   readonly jsroutesnapper_routeNameForWaypoints: (a: number, b: number, c: number) => void;
   readonly jsroutesnapper_addSnappedWaypoint: (a: number, b: number, c: number) => void;
   readonly jsroutesnapper_undo: (a: number) => void;
+  readonly jsroutesnapper_calculateRoute: (a: number, b: number, c: number) => void;
+  readonly jsroutesnapper_getExtraNodes: (a: number, b: number, c: number, d: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
