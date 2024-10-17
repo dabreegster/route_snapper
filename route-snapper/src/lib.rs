@@ -813,6 +813,79 @@ impl JsRouteSnapper {
             self.previous_states.remove(0);
         }
     }
+
+    // TODO If this new style works well, either ditch the old stateful API entirely, or export a
+    // different stateless class
+    /// Experimental new stateless API. From a list of waypoints, return a Feature with the full
+    /// geometry and properties. Note this internally modifies state.
+    #[wasm_bindgen(js_name = calculateRoute)]
+    pub fn calculate_route(&mut self, raw_waypoints: JsValue) -> Result<String, JsValue> {
+        self.clear_state();
+
+        let waypoints: Vec<NewRouteWaypoint> = serde_wasm_bindgen::from_value(raw_waypoints)?;
+        for waypt in waypoints {
+            let pt = Coord {
+                x: waypt.point[0],
+                y: waypt.point[1],
+            };
+            if waypt.snapped {
+                if let Some(node) = self.mouseover_node(pt) {
+                    self.route
+                        .add_waypoint(&self.router, Waypoint::Snapped(node));
+                } else {
+                    return Err(JsValue::from_str("A waypoint didn't snap"));
+                }
+            } else {
+                self.route.add_waypoint(&self.router, Waypoint::Free(pt));
+            }
+        }
+
+        match self.to_final_feature() {
+            Some(gj) => Ok(gj),
+            None => Err(JsValue::from_str("no route")),
+        }
+    }
+
+    /// Experimental new stateless API. From exactly two waypoints, return a list of extra
+    /// intermediate snappable nodes. Note this internally modifies state.
+    #[wasm_bindgen(js_name = getExtraNodes)]
+    pub fn get_extra_nodes(
+        &mut self,
+        raw_waypt1: JsValue,
+        raw_waypt2: JsValue,
+    ) -> Result<String, JsValue> {
+        self.clear_state();
+
+        let waypt1: NewRouteWaypoint = serde_wasm_bindgen::from_value(raw_waypt1)?;
+        let waypt2: NewRouteWaypoint = serde_wasm_bindgen::from_value(raw_waypt2)?;
+        // TODO Dedupe code, if this all works out
+        for waypt in [waypt1, waypt2] {
+            let pt = Coord {
+                x: waypt.point[0],
+                y: waypt.point[1],
+            };
+            if waypt.snapped {
+                if let Some(node) = self.mouseover_node(pt) {
+                    self.route
+                        .add_waypoint(&self.router, Waypoint::Snapped(node));
+                } else {
+                    return Err(JsValue::from_str("A waypoint didn't snap"));
+                }
+            } else {
+                self.route.add_waypoint(&self.router, Waypoint::Free(pt));
+            }
+        }
+
+        let mut extra_nodes: Vec<[f64; 2]> = Vec::new();
+        for entry in &self.route.full_path {
+            // TODO Skip the first and last, so we only show intermediate nodes?
+            if let PathEntry::SnappedPoint(node) = entry {
+                let pt = self.router.map.node(*node);
+                extra_nodes.push([pt.x, pt.y]);
+            }
+        }
+        serde_json::to_string(&extra_nodes).map_err(err_to_js)
+    }
 }
 
 impl JsRouteSnapper {
@@ -1143,6 +1216,13 @@ fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
 struct RouteWaypoint {
     lon: f64,
     lat: f64,
+    snapped: bool,
+}
+
+// TODO A variation of RouteWaypoint that's easier to make work with MapLibre markers
+#[derive(Deserialize)]
+struct NewRouteWaypoint {
+    point: [f64; 2],
     snapped: bool,
 }
 

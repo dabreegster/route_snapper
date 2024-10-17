@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+- Add two new experimental stateless APIs. Do not use yet.
+
 ## 0.4.3
 
 - Upgrade Rust geo dependencies
