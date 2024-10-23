@@ -149,6 +149,13 @@ export class RouteTool {
     if (!this.active) {
       return;
     }
+
+    // Ignore keypresses if the user is focused on a form
+    let tag = (e.target as HTMLElement).tagName;
+    if (tag == "INPUT" || tag == "TEXTAREA") {
+      return;
+    }
+
     if (e.key == "Escape") {
       e.stopPropagation();
       this.cancel();
@@ -159,8 +166,10 @@ export class RouteTool {
     if (!this.active) {
       return;
     }
-    // Ignore keypresses if we're not focused on the map
-    if ((e.target as HTMLElement).tagName == "INPUT") {
+
+    // Ignore keypresses if the user is focused on a form
+    let tag = (e.target as HTMLElement).tagName;
+    if (tag == "INPUT" || tag == "TEXTAREA") {
       return;
     }
 

@@ -1,7 +1,7 @@
 {
   "name": "route-snapper-ts",
   "description": "Draw routes in MapLibre snapped to a street network using client-side routing. TypeScript bindings",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
