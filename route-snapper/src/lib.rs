@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fmt::Write;
 use std::sync::Once;
 
-use geo::{Coord, HaversineDistance, HaversineLength, LineString, Point, Polygon};
+use geo::{Coord, Distance, Haversine, Length, LineString, Point, Polygon};
 use geojson::{Feature, FeatureCollection, Geometry};
 use petgraph::graphmap::DiGraphMap;
 use rstar::primitives::GeomWithData;
@@ -160,7 +160,7 @@ impl JsRouteSnapper {
         }
 
         for (idx, edge) in map.edges.iter_mut().enumerate() {
-            edge.length_meters = edge.geometry.haversine_length();
+            edge.length_meters = edge.geometry.length::<Haversine>();
 
             if map.override_forward_costs.is_empty() {
                 edge.forward_cost = Some(edge.length_meters);
@@ -250,7 +250,7 @@ impl JsRouteSnapper {
             }
         } else {
             let linestring = self.entire_line_string()?;
-            let length = linestring.haversine_length();
+            let length = linestring.length::<Haversine>();
             let mut f = Feature::from(Geometry::from(&linestring));
             f.set_property("length_meters", length);
 
@@ -894,7 +894,7 @@ impl JsRouteSnapper {
         // TODO For very long routes, this'll get slow
         for waypt in &self.route.waypoints {
             if let Waypoint::Free(x) = waypt {
-                if Point::from(*x).haversine_distance(&Point::from(pt)) < circle_radius_meters {
+                if Haversine::distance(Point::from(*x), Point::from(pt)) < circle_radius_meters {
                     return Some(*waypt);
                 }
             }
@@ -1182,7 +1182,7 @@ impl Router {
                 };
                 penalty * cost
             },
-            |i| Point::from(self.map.node(i)).haversine_distance(&Point::from(node2_pt)),
+            |i| Haversine::distance(Point::from(self.map.node(i)), Point::from(node2_pt)),
         )?;
 
         let mut entries = Vec::new();

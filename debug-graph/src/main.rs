@@ -1,4 +1,4 @@
-use geo::HaversineLength;
+use geo::{Haversine, Length};
 use geojson::{Feature, Geometry};
 use route_snapper_graph::RouteSnapperMap;
 
@@ -23,7 +23,7 @@ fn main() {
     }
 
     for (idx, edge) in map.edges.iter_mut().enumerate() {
-        edge.length_meters = edge.geometry.haversine_length();
+        edge.length_meters = edge.geometry.length::<Haversine>();
 
         if map.override_forward_costs.is_empty() {
             edge.forward_cost = Some(edge.length_meters);
