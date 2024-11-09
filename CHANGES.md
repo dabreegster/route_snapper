@@ -8,6 +8,7 @@ changes.
 ## Unreleased
 
 - Upgrade Rust geo dependencies
+- Dedupe full_path output; it sometimes had duplicate adjacent nodes
 
 ## 0.4.4
 

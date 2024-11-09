@@ -106,6 +106,7 @@ struct Route {
     waypoints: Vec<Waypoint>,
 
     // The full route, expanded. This can be calculated purely from waypoints.
+    // TODO Sometimes this has duplicate adjacent entries, for unknown reasons
     full_path: Vec<PathEntry>,
 }
 
@@ -282,6 +283,7 @@ impl JsRouteSnapper {
                     PathEntry::Edge(_) => {}
                 }
             }
+            full_path.dedup();
             f.set_property("full_path", serde_json::Value::Array(full_path));
 
             f
