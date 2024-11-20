@@ -352,6 +352,7 @@ export class JsRouteSnapper {
         return ret !== 0;
     }
     /**
+    * Note this doesn't change route/area mode.
     */
     clearState() {
         wasm.jsroutesnapper_clearState(this.__wbg_ptr);

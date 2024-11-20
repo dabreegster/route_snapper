@@ -52,6 +52,7 @@ export class JsRouteSnapper {
 */
   onMouseUp(): boolean;
 /**
+* Note this doesn't change route/area mode.
 */
   clearState(): void;
 /**
