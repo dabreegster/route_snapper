@@ -687,6 +687,7 @@ impl JsRouteSnapper {
         false
     }
 
+    /// Note this doesn't change route/area mode.
     #[wasm_bindgen(js_name = clearState)]
     pub fn clear_state(&mut self) {
         self.route = Route::new();
@@ -823,6 +824,8 @@ impl JsRouteSnapper {
     #[wasm_bindgen(js_name = calculateRoute)]
     pub fn calculate_route(&mut self, raw_waypoints: JsValue) -> Result<String, JsValue> {
         self.clear_state();
+        // Make sure we're not in area mode
+        self.router.config = Config::default();
 
         let waypoints: Vec<NewRouteWaypoint> = serde_wasm_bindgen::from_value(raw_waypoints)?;
         for waypt in waypoints {
@@ -857,6 +860,8 @@ impl JsRouteSnapper {
         raw_waypt2: JsValue,
     ) -> Result<String, JsValue> {
         self.clear_state();
+        // Make sure we're not in area mode
+        self.router.config = Config::default();
 
         let waypt1: NewRouteWaypoint = serde_wasm_bindgen::from_value(raw_waypt1)?;
         let waypt2: NewRouteWaypoint = serde_wasm_bindgen::from_value(raw_waypt2)?;

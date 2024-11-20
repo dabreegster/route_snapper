@@ -7,6 +7,10 @@ changes.
 
 ## Unreleased
 
+## 0.4.6
+
+- Fix switching between area mode and new stateless APIs
+
 ## 0.4.5
 
 - Upgrade Rust geo dependencies
