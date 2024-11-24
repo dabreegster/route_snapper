@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+- Adjust getExtraNodes: skip first and last node, since they're waypoints already
+
 ## 0.4.6
 
 - Fix switching between area mode and new stateless APIs

@@ -852,7 +852,7 @@ impl JsRouteSnapper {
     }
 
     /// Experimental new stateless API. From exactly two waypoints, return a list of extra
-    /// intermediate snappable nodes. Note this internally modifies state.
+    /// intermediate nodes. Note this internally modifies state.
     #[wasm_bindgen(js_name = getExtraNodes)]
     pub fn get_extra_nodes(
         &mut self,
@@ -884,8 +884,12 @@ impl JsRouteSnapper {
         }
 
         let mut extra_nodes: Vec<[f64; 2]> = Vec::new();
-        for entry in &self.route.full_path {
-            // TODO Skip the first and last, so we only show intermediate nodes?
+        for (idx, entry) in self.route.full_path.iter().enumerate() {
+            // Skip the first and last, so only intermediate nodes are returned
+            if idx == 0 || idx == self.route.full_path.len() - 1 {
+                continue;
+            }
+
             if let PathEntry::SnappedPoint(node) = entry {
                 let pt = self.router.map.node(*node);
                 extra_nodes.push([pt.x, pt.y]);
