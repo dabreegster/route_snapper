@@ -91,7 +91,7 @@ export class JsRouteSnapper {
   calculateRoute(raw_waypoints: any): string;
 /**
 * Experimental new stateless API. From exactly two waypoints, return a list of extra
-* intermediate snappable nodes. Note this internally modifies state.
+* intermediate nodes. Note this internally modifies state.
 * @param {any} raw_waypt1
 * @param {any} raw_waypt2
 * @returns {string}
