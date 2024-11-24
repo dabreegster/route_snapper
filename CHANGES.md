@@ -8,6 +8,7 @@ changes.
 ## Unreleased
 
 - Adjust getExtraNodes: skip first and last node, since they're waypoints already
+- For getExtraNodes, include a point between freehand waypoints
 
 ## 0.4.6
 

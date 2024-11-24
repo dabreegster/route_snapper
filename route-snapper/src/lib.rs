@@ -8,7 +8,9 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fmt::Write;
 use std::sync::Once;
 
-use geo::{Coord, Distance, Haversine, Length, LineString, Point, Polygon};
+use geo::{
+    Coord, Distance, Haversine, Length, Line, LineInterpolatePoint, LineString, Point, Polygon,
+};
 use geojson::{Feature, FeatureCollection, Geometry};
 use petgraph::graphmap::DiGraphMap;
 use rstar::primitives::GeomWithData;
@@ -852,7 +854,8 @@ impl JsRouteSnapper {
     }
 
     /// Experimental new stateless API. From exactly two waypoints, return a list of extra
-    /// intermediate nodes. Note this internally modifies state.
+    /// intermediate nodes and a boolean to indicate if they're snappable or not. Note this
+    /// internally modifies state.
     #[wasm_bindgen(js_name = getExtraNodes)]
     pub fn get_extra_nodes(
         &mut self,
@@ -865,6 +868,16 @@ impl JsRouteSnapper {
 
         let waypt1: NewRouteWaypoint = serde_wasm_bindgen::from_value(raw_waypt1)?;
         let waypt2: NewRouteWaypoint = serde_wasm_bindgen::from_value(raw_waypt2)?;
+
+        // If both waypoints aren't snapped, just return one extra node in the middle
+        if !waypt1.snapped || !waypt2.snapped {
+            let line = Line::new(waypt1.point, waypt2.point);
+            if let Some(midpt) = line.line_interpolate_point(0.5) {
+                return serde_json::to_string(&vec![(midpt.x(), midpt.y(), false)])
+                    .map_err(err_to_js);
+            }
+        }
+
         // TODO Dedupe code, if this all works out
         for waypt in [waypt1, waypt2] {
             let pt = Coord {
@@ -883,7 +896,7 @@ impl JsRouteSnapper {
             }
         }
 
-        let mut extra_nodes: Vec<[f64; 2]> = Vec::new();
+        let mut extra_nodes: Vec<(f64, f64, bool)> = Vec::new();
         for (idx, entry) in self.route.full_path.iter().enumerate() {
             // Skip the first and last, so only intermediate nodes are returned
             if idx == 0 || idx == self.route.full_path.len() - 1 {
@@ -892,7 +905,7 @@ impl JsRouteSnapper {
 
             if let PathEntry::SnappedPoint(node) = entry {
                 let pt = self.router.map.node(*node);
-                extra_nodes.push([pt.x, pt.y]);
+                extra_nodes.push((pt.x, pt.y, true));
             }
         }
         serde_json::to_string(&extra_nodes).map_err(err_to_js)
