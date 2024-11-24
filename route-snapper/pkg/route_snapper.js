@@ -485,7 +485,8 @@ export class JsRouteSnapper {
     }
     /**
     * Experimental new stateless API. From exactly two waypoints, return a list of extra
-    * intermediate nodes. Note this internally modifies state.
+    * intermediate nodes and a boolean to indicate if they're snappable or not. Note this
+    * internally modifies state.
     * @param {any} raw_waypt1
     * @param {any} raw_waypt2
     * @returns {string}
@@ -557,15 +558,15 @@ function __wbg_get_imports() {
     imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
         takeObject(arg0);
     };
+    imports.wbg.__wbindgen_error_new = function(arg0, arg1) {
+        const ret = new Error(getStringFromWasm0(arg0, arg1));
+        return addHeapObject(ret);
+    };
     imports.wbg.__wbindgen_number_get = function(arg0, arg1) {
         const obj = getObject(arg1);
         const ret = typeof(obj) === 'number' ? obj : undefined;
         getFloat64Memory0()[arg0 / 8 + 1] = isLikeNone(ret) ? 0 : ret;
         getInt32Memory0()[arg0 / 4 + 0] = !isLikeNone(ret);
-    };
-    imports.wbg.__wbindgen_error_new = function(arg0, arg1) {
-        const ret = new Error(getStringFromWasm0(arg0, arg1));
-        return addHeapObject(ret);
     };
     imports.wbg.__wbindgen_is_object = function(arg0) {
         const val = getObject(arg0);
