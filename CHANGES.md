@@ -7,6 +7,10 @@ changes.
 
 ## Unreleased
 
+## 0.4.9
+
+- Trim freehand coordinate precision in stateless API
+
 ## 0.4.8
 
 - Fix midpoints next to a snapped waypoint

@@ -832,8 +832,8 @@ impl JsRouteSnapper {
         let waypoints: Vec<NewRouteWaypoint> = serde_wasm_bindgen::from_value(raw_waypoints)?;
         for waypt in waypoints {
             let pt = Coord {
-                x: waypt.point[0],
-                y: waypt.point[1],
+                x: trim_lon_lat(waypt.point[0]),
+                y: trim_lon_lat(waypt.point[1]),
             };
             if waypt.snapped {
                 if let Some(node) = self.mouseover_node(pt) {
