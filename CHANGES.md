@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+## 0.4.8
+
 - Fix midpoints next to a snapped waypoint
 
 ## 0.4.7
