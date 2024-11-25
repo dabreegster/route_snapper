@@ -871,7 +871,23 @@ impl JsRouteSnapper {
 
         // If both waypoints aren't snapped, just return one extra node in the middle
         if !waypt1.snapped || !waypt2.snapped {
-            let line = Line::new(waypt1.point, waypt2.point);
+            // If one waypoint is snapped, use its snapped position for finding the middle
+            let pt1 = if waypt1.snapped {
+                self.mouseover_node(waypt1.point.into())
+                    .map(|n| self.router.map.node(n))
+                    .unwrap_or(waypt1.point.into())
+            } else {
+                waypt1.point.into()
+            };
+            let pt2 = if waypt2.snapped {
+                self.mouseover_node(waypt2.point.into())
+                    .map(|n| self.router.map.node(n))
+                    .unwrap_or(waypt2.point.into())
+            } else {
+                waypt2.point.into()
+            };
+
+            let line = Line::new(pt1, pt2);
             if let Some(midpt) = line.line_interpolate_point(0.5) {
                 return serde_json::to_string(&vec![(midpt.x(), midpt.y(), false)])
                     .map_err(err_to_js);

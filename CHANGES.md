@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+- Fix midpoints next to a snapped waypoint
+
 ## 0.4.7
 
 - Adjust getExtraNodes: skip first and last node, since they're waypoints already
