@@ -165,6 +165,8 @@
         });
         let idCounter = 0;
         let snapTool = document.getElementById("snap-tool");
+        let lastRouteName = null;
+        
         snapTool.addEventListener("new-route", (e) => {
           // Assign a unique ID, so we can later delete it
           e.detail.properties.uid = idCounter++;
