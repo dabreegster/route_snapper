@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use geo::{
-    BooleanOps, Contains, Coord, Haversine, Intersects, Length, LineString, MultiLineString,
-    MultiPolygon,
+    line_measures::LengthMeasurable, BooleanOps, Contains, Coord, Haversine, Intersects,
+    LineString, MultiLineString, MultiPolygon,
 };
 use log::{debug, info};
 use osm_reader::{Element, WayID};
@@ -186,8 +186,8 @@ fn clip(map: &mut RouteSnapperMap, boundary: MultiPolygon) {
             debug!(
                 "Shortening {:?} from {} to {}",
                 edge.name,
-                edge.geometry.length::<Haversine>(),
-                multi_line_string.0[0].length::<Haversine>()
+                edge.geometry.length(&Haversine),
+                multi_line_string.0[0].length(&Haversine)
             );
             edge.geometry = multi_line_string.0.remove(0);
             // Fix both nodes; if there's no change, doesn't matter

@@ -9,7 +9,8 @@ use std::fmt::Write;
 use std::sync::Once;
 
 use geo::{
-    Coord, Distance, Haversine, Length, Line, LineInterpolatePoint, LineString, Point, Polygon,
+    line_measures::LengthMeasurable, Coord, Distance, Haversine, InterpolatableLine, Line,
+    LineString, Point, Polygon,
 };
 use geojson::{Feature, FeatureCollection, Geometry};
 use petgraph::graphmap::DiGraphMap;
@@ -163,7 +164,7 @@ impl JsRouteSnapper {
         }
 
         for (idx, edge) in map.edges.iter_mut().enumerate() {
-            edge.length_meters = edge.geometry.length::<Haversine>();
+            edge.length_meters = edge.geometry.length(&Haversine);
 
             if map.override_forward_costs.is_empty() {
                 edge.forward_cost = Some(edge.length_meters);
@@ -253,7 +254,7 @@ impl JsRouteSnapper {
             }
         } else {
             let linestring = self.entire_line_string()?;
-            let length = linestring.length::<Haversine>();
+            let length = linestring.length(&Haversine);
             let mut f = Feature::from(Geometry::from(&linestring));
             f.set_property("length_meters", length);
 
@@ -888,10 +889,8 @@ impl JsRouteSnapper {
             };
 
             let line = Line::new(pt1, pt2);
-            if let Some(midpt) = line.line_interpolate_point(0.5) {
-                return serde_json::to_string(&vec![(midpt.x(), midpt.y(), false)])
-                    .map_err(err_to_js);
-            }
+            let midpt = line.point_at_ratio_from_start(&Haversine, 0.5);
+            return serde_json::to_string(&vec![(midpt.x(), midpt.y(), false)]).map_err(err_to_js);
         }
 
         // TODO Dedupe code, if this all works out
@@ -934,7 +933,7 @@ impl JsRouteSnapper {
         // TODO For very long routes, this'll get slow
         for waypt in &self.route.waypoints {
             if let Waypoint::Free(x) = waypt {
-                if Haversine::distance(Point::from(*x), Point::from(pt)) < circle_radius_meters {
+                if Haversine.distance(Point::from(*x), Point::from(pt)) < circle_radius_meters {
                     return Some(*waypt);
                 }
             }
@@ -1222,7 +1221,7 @@ impl Router {
                 };
                 penalty * cost
             },
-            |i| Haversine::distance(Point::from(self.map.node(i)), Point::from(node2_pt)),
+            |i| Haversine.distance(Point::from(self.map.node(i)), Point::from(node2_pt)),
         )?;
 
         let mut entries = Vec::new();
