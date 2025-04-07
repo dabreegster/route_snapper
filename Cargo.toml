@@ -13,7 +13,7 @@ resolver = "2"
 edition = "2021"
 
 [workspace.dependencies]
-geo = "0.29.1"
+geo = "0.30.0"
 geojson = { git = "https://github.com/georust/geojson", features = ["geo-types"] }
 
 # For local development, build dependencies in release mode once, but otherwise
