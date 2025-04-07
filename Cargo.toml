@@ -1,0 +1,23 @@
+[workspace]
+members = [
+    "debug-graph",
+    "geojson-to-route-snapper",
+    "osm-to-route-snapper",
+    "route-snapper",
+    "route-snapper-graph",
+]
+
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+
+[workspace.dependencies]
+geo = "0.29.1"
+geojson = { git = "https://github.com/georust/geojson", features = ["geo-types"] }
+
+# For local development, build dependencies in release mode once, but otherwise
+# use dev profile and avoid wasm-opt.
+[profile.dev.package."*"]
+opt-level = 3
+
