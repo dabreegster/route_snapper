@@ -7,6 +7,8 @@ changes.
 
 ## Unreleased
 
+- Upgrade Rust geo dependencies
+
 ## 0.4.9
 
 - Trim freehand coordinate precision in stateless API
