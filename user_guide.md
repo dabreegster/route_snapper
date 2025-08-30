@@ -124,6 +124,7 @@ There are a few methods on the `RouteSnapper` object you can call:
   - `avoid_doubling_back` (disabled by default): When possible, avoid edges
     already crossed for handling intermediate waypoints
   - `extend_route` (disabled by default): The user can keep clicking to extend the end of the route. When false, the user can only draw two endpoints, then drag intermediate points.
+  - `same_road_mode` (disabled by default): The user can add another waypoint only if it shares a road with the previous waypoint.
 - `setAreaMode()` changes to producing polygons instead of line-strings.
 - `editExisting` to restart the tool with a previously created route. See notes
   in [the example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.html)
