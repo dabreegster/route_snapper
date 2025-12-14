@@ -11,6 +11,8 @@ anyhow = "1.0.75"
 bincode = "1.3.3"
 geo = { workspace = true }
 geojson = { workspace = true }
+# TODO geo workaround
+getrandom = { version = "0.2.16", features = ["js"] }
 log = "0.4.20"
 osm-reader = { git = "https://github.com/a-b-street/osm-reader", rev="803817ddda8eec0ca7052b6b43e5ce70376fbf6c" }
 route-snapper-graph = { path = "../route-snapper-graph" }

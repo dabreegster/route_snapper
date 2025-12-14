@@ -15,6 +15,8 @@ console_error_panic_hook = "0.1.6"
 console_log = "1.0.0"
 geo = { workspace = true }
 geojson = { workspace = true }
+# TODO geo workaround
+getrandom = { version = "0.2.16", features = ["js"] }
 log = "0.4.20"
 petgraph = "0.6.4"
 route-snapper-graph = { path = "../route-snapper-graph" }
