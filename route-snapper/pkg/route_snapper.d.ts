@@ -2,42 +2,23 @@
 /* eslint-disable */
 export class JsRouteSnapper {
   free(): void;
-  constructor(map_bytes: Uint8Array);
-  /**
-   * Updates configuration and recalculates paths. The caller should redraw.
-   */
-  setRouteConfig(input: any): void;
-  /**
-   * Enables area mode, where the snapper produces polygons.
-   */
-  setAreaMode(): void;
   /**
    * Gets the current configuration in JSON.
    */
   getConfig(): string;
-  toFinalFeature(): string | undefined;
-  renderGeojson(): string;
-  toggleSnapMode(): void;
-  onMouseMove(lon: number, lat: number, circle_radius_meters: number): boolean;
-  onClick(): void;
-  onDragStart(): boolean;
-  onMouseUp(): boolean;
   /**
    * Note this doesn't change route/area mode.
    */
   clearState(): void;
+  onMouseUp(): boolean;
   editExisting(raw_waypoints: any): void;
+  onDragStart(): boolean;
+  onMouseMove(lon: number, lat: number, circle_radius_meters: number): boolean;
   /**
-   * Render the graph as GeoJSON points and line-strings, for debugging.
+   * Enables area mode, where the snapper produces polygons.
    */
-  debugRenderGraph(): string;
-  /**
-   * Render the graph as GeoJSON points, for helping the user understand the snappable nodes.
-   */
-  debugSnappableNodes(): string;
-  routeNameForWaypoints(raw_waypoints: any): string;
-  addSnappedWaypoint(lon: number, lat: number): void;
-  undo(): void;
+  setAreaMode(): void;
+  renderGeojson(): string;
   /**
    * Experimental new stateless API. From a list of waypoints, return a Feature with the full
    * geometry and properties. Note this internally modifies state.
@@ -49,6 +30,25 @@ export class JsRouteSnapper {
    * internally modifies state.
    */
   getExtraNodes(raw_waypt1: any, raw_waypt2: any): string;
+  /**
+   * Updates configuration and recalculates paths. The caller should redraw.
+   */
+  setRouteConfig(input: any): void;
+  toFinalFeature(): string | undefined;
+  toggleSnapMode(): void;
+  /**
+   * Render the graph as GeoJSON points and line-strings, for debugging.
+   */
+  debugRenderGraph(): string;
+  addSnappedWaypoint(lon: number, lat: number): void;
+  /**
+   * Render the graph as GeoJSON points, for helping the user understand the snappable nodes.
+   */
+  debugSnappableNodes(): string;
+  routeNameForWaypoints(raw_waypoints: any): string;
+  constructor(map_bytes: Uint8Array);
+  undo(): void;
+  onClick(): void;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -56,26 +56,26 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_jsroutesnapper_free: (a: number, b: number) => void;
-  readonly jsroutesnapper_new: (a: number, b: number) => [number, number, number];
-  readonly jsroutesnapper_setRouteConfig: (a: number, b: any) => void;
-  readonly jsroutesnapper_setAreaMode: (a: number) => void;
-  readonly jsroutesnapper_getConfig: (a: number) => [number, number];
-  readonly jsroutesnapper_toFinalFeature: (a: number) => [number, number];
-  readonly jsroutesnapper_renderGeojson: (a: number) => [number, number];
-  readonly jsroutesnapper_toggleSnapMode: (a: number) => void;
-  readonly jsroutesnapper_onMouseMove: (a: number, b: number, c: number, d: number) => number;
-  readonly jsroutesnapper_onClick: (a: number) => void;
-  readonly jsroutesnapper_onDragStart: (a: number) => number;
-  readonly jsroutesnapper_onMouseUp: (a: number) => number;
+  readonly jsroutesnapper_addSnappedWaypoint: (a: number, b: number, c: number) => void;
+  readonly jsroutesnapper_calculateRoute: (a: number, b: any) => [number, number, number, number];
   readonly jsroutesnapper_clearState: (a: number) => void;
-  readonly jsroutesnapper_editExisting: (a: number, b: any) => [number, number];
   readonly jsroutesnapper_debugRenderGraph: (a: number) => [number, number];
   readonly jsroutesnapper_debugSnappableNodes: (a: number) => [number, number];
-  readonly jsroutesnapper_routeNameForWaypoints: (a: number, b: any) => [number, number, number, number];
-  readonly jsroutesnapper_addSnappedWaypoint: (a: number, b: number, c: number) => void;
-  readonly jsroutesnapper_undo: (a: number) => void;
-  readonly jsroutesnapper_calculateRoute: (a: number, b: any) => [number, number, number, number];
+  readonly jsroutesnapper_editExisting: (a: number, b: any) => [number, number];
+  readonly jsroutesnapper_getConfig: (a: number) => [number, number];
   readonly jsroutesnapper_getExtraNodes: (a: number, b: any, c: any) => [number, number, number, number];
+  readonly jsroutesnapper_new: (a: number, b: number) => [number, number, number];
+  readonly jsroutesnapper_onClick: (a: number) => void;
+  readonly jsroutesnapper_onDragStart: (a: number) => number;
+  readonly jsroutesnapper_onMouseMove: (a: number, b: number, c: number, d: number) => number;
+  readonly jsroutesnapper_onMouseUp: (a: number) => number;
+  readonly jsroutesnapper_renderGeojson: (a: number) => [number, number];
+  readonly jsroutesnapper_routeNameForWaypoints: (a: number, b: any) => [number, number, number, number];
+  readonly jsroutesnapper_setAreaMode: (a: number) => void;
+  readonly jsroutesnapper_setRouteConfig: (a: number, b: any) => void;
+  readonly jsroutesnapper_toFinalFeature: (a: number) => [number, number];
+  readonly jsroutesnapper_toggleSnapMode: (a: number) => void;
+  readonly jsroutesnapper_undo: (a: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_exn_store: (a: number) => void;

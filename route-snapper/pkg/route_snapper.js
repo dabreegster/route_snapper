@@ -167,17 +167,17 @@ function isLikeNone(x) {
     return x === undefined || x === null;
 }
 
+function takeFromExternrefTable0(idx) {
+    const value = wasm.__wbindgen_export_4.get(idx);
+    wasm.__externref_table_dealloc(idx);
+    return value;
+}
+
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8ArrayMemory0().set(arg, ptr / 1);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
-}
-
-function takeFromExternrefTable0(idx) {
-    const value = wasm.__wbindgen_export_4.get(idx);
-    wasm.__externref_table_dealloc(idx);
-    return value;
 }
 
 const JsRouteSnapperFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -198,33 +198,6 @@ export class JsRouteSnapper {
         wasm.__wbg_jsroutesnapper_free(ptr, 0);
     }
     /**
-     * @param {Uint8Array} map_bytes
-     */
-    constructor(map_bytes) {
-        const ptr0 = passArray8ToWasm0(map_bytes, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.jsroutesnapper_new(ptr0, len0);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        this.__wbg_ptr = ret[0] >>> 0;
-        JsRouteSnapperFinalization.register(this, this.__wbg_ptr, this);
-        return this;
-    }
-    /**
-     * Updates configuration and recalculates paths. The caller should redraw.
-     * @param {any} input
-     */
-    setRouteConfig(input) {
-        wasm.jsroutesnapper_setRouteConfig(this.__wbg_ptr, input);
-    }
-    /**
-     * Enables area mode, where the snapper produces polygons.
-     */
-    setAreaMode() {
-        wasm.jsroutesnapper_setAreaMode(this.__wbg_ptr);
-    }
-    /**
      * Gets the current configuration in JSON.
      * @returns {string}
      */
@@ -241,16 +214,49 @@ export class JsRouteSnapper {
         }
     }
     /**
-     * @returns {string | undefined}
+     * Note this doesn't change route/area mode.
      */
-    toFinalFeature() {
-        const ret = wasm.jsroutesnapper_toFinalFeature(this.__wbg_ptr);
-        let v1;
-        if (ret[0] !== 0) {
-            v1 = getStringFromWasm0(ret[0], ret[1]).slice();
-            wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    clearState() {
+        wasm.jsroutesnapper_clearState(this.__wbg_ptr);
+    }
+    /**
+     * @returns {boolean}
+     */
+    onMouseUp() {
+        const ret = wasm.jsroutesnapper_onMouseUp(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * @param {any} raw_waypoints
+     */
+    editExisting(raw_waypoints) {
+        const ret = wasm.jsroutesnapper_editExisting(this.__wbg_ptr, raw_waypoints);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
         }
-        return v1;
+    }
+    /**
+     * @returns {boolean}
+     */
+    onDragStart() {
+        const ret = wasm.jsroutesnapper_onDragStart(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * @param {number} lon
+     * @param {number} lat
+     * @param {number} circle_radius_meters
+     * @returns {boolean}
+     */
+    onMouseMove(lon, lat, circle_radius_meters) {
+        const ret = wasm.jsroutesnapper_onMouseMove(this.__wbg_ptr, lon, lat, circle_radius_meters);
+        return ret !== 0;
+    }
+    /**
+     * Enables area mode, where the snapper produces polygons.
+     */
+    setAreaMode() {
+        wasm.jsroutesnapper_setAreaMode(this.__wbg_ptr);
     }
     /**
      * @returns {string}
@@ -266,115 +272,6 @@ export class JsRouteSnapper {
         } finally {
             wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
         }
-    }
-    toggleSnapMode() {
-        wasm.jsroutesnapper_toggleSnapMode(this.__wbg_ptr);
-    }
-    /**
-     * @param {number} lon
-     * @param {number} lat
-     * @param {number} circle_radius_meters
-     * @returns {boolean}
-     */
-    onMouseMove(lon, lat, circle_radius_meters) {
-        const ret = wasm.jsroutesnapper_onMouseMove(this.__wbg_ptr, lon, lat, circle_radius_meters);
-        return ret !== 0;
-    }
-    onClick() {
-        wasm.jsroutesnapper_onClick(this.__wbg_ptr);
-    }
-    /**
-     * @returns {boolean}
-     */
-    onDragStart() {
-        const ret = wasm.jsroutesnapper_onDragStart(this.__wbg_ptr);
-        return ret !== 0;
-    }
-    /**
-     * @returns {boolean}
-     */
-    onMouseUp() {
-        const ret = wasm.jsroutesnapper_onMouseUp(this.__wbg_ptr);
-        return ret !== 0;
-    }
-    /**
-     * Note this doesn't change route/area mode.
-     */
-    clearState() {
-        wasm.jsroutesnapper_clearState(this.__wbg_ptr);
-    }
-    /**
-     * @param {any} raw_waypoints
-     */
-    editExisting(raw_waypoints) {
-        const ret = wasm.jsroutesnapper_editExisting(this.__wbg_ptr, raw_waypoints);
-        if (ret[1]) {
-            throw takeFromExternrefTable0(ret[0]);
-        }
-    }
-    /**
-     * Render the graph as GeoJSON points and line-strings, for debugging.
-     * @returns {string}
-     */
-    debugRenderGraph() {
-        let deferred1_0;
-        let deferred1_1;
-        try {
-            const ret = wasm.jsroutesnapper_debugRenderGraph(this.__wbg_ptr);
-            deferred1_0 = ret[0];
-            deferred1_1 = ret[1];
-            return getStringFromWasm0(ret[0], ret[1]);
-        } finally {
-            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-        }
-    }
-    /**
-     * Render the graph as GeoJSON points, for helping the user understand the snappable nodes.
-     * @returns {string}
-     */
-    debugSnappableNodes() {
-        let deferred1_0;
-        let deferred1_1;
-        try {
-            const ret = wasm.jsroutesnapper_debugSnappableNodes(this.__wbg_ptr);
-            deferred1_0 = ret[0];
-            deferred1_1 = ret[1];
-            return getStringFromWasm0(ret[0], ret[1]);
-        } finally {
-            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-        }
-    }
-    /**
-     * @param {any} raw_waypoints
-     * @returns {string}
-     */
-    routeNameForWaypoints(raw_waypoints) {
-        let deferred2_0;
-        let deferred2_1;
-        try {
-            const ret = wasm.jsroutesnapper_routeNameForWaypoints(this.__wbg_ptr, raw_waypoints);
-            var ptr1 = ret[0];
-            var len1 = ret[1];
-            if (ret[3]) {
-                ptr1 = 0; len1 = 0;
-                throw takeFromExternrefTable0(ret[2]);
-            }
-            deferred2_0 = ptr1;
-            deferred2_1 = len1;
-            return getStringFromWasm0(ptr1, len1);
-        } finally {
-            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
-        }
-    }
-    /**
-     * @param {number} lon
-     * @param {number} lat
-     */
-    addSnappedWaypoint(lon, lat) {
-        wasm.jsroutesnapper_addSnappedWaypoint(this.__wbg_ptr, lon, lat);
-    }
-    undo() {
-        wasm.jsroutesnapper_undo(this.__wbg_ptr);
     }
     /**
      * Experimental new stateless API. From a list of waypoints, return a Feature with the full
@@ -425,6 +322,109 @@ export class JsRouteSnapper {
         } finally {
             wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
         }
+    }
+    /**
+     * Updates configuration and recalculates paths. The caller should redraw.
+     * @param {any} input
+     */
+    setRouteConfig(input) {
+        wasm.jsroutesnapper_setRouteConfig(this.__wbg_ptr, input);
+    }
+    /**
+     * @returns {string | undefined}
+     */
+    toFinalFeature() {
+        const ret = wasm.jsroutesnapper_toFinalFeature(this.__wbg_ptr);
+        let v1;
+        if (ret[0] !== 0) {
+            v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+            wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        }
+        return v1;
+    }
+    toggleSnapMode() {
+        wasm.jsroutesnapper_toggleSnapMode(this.__wbg_ptr);
+    }
+    /**
+     * Render the graph as GeoJSON points and line-strings, for debugging.
+     * @returns {string}
+     */
+    debugRenderGraph() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.jsroutesnapper_debugRenderGraph(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * @param {number} lon
+     * @param {number} lat
+     */
+    addSnappedWaypoint(lon, lat) {
+        wasm.jsroutesnapper_addSnappedWaypoint(this.__wbg_ptr, lon, lat);
+    }
+    /**
+     * Render the graph as GeoJSON points, for helping the user understand the snappable nodes.
+     * @returns {string}
+     */
+    debugSnappableNodes() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.jsroutesnapper_debugSnappableNodes(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * @param {any} raw_waypoints
+     * @returns {string}
+     */
+    routeNameForWaypoints(raw_waypoints) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ret = wasm.jsroutesnapper_routeNameForWaypoints(this.__wbg_ptr, raw_waypoints);
+            var ptr1 = ret[0];
+            var len1 = ret[1];
+            if (ret[3]) {
+                ptr1 = 0; len1 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * @param {Uint8Array} map_bytes
+     */
+    constructor(map_bytes) {
+        const ptr0 = passArray8ToWasm0(map_bytes, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.jsroutesnapper_new(ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0] >>> 0;
+        JsRouteSnapperFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    undo() {
+        wasm.jsroutesnapper_undo(this.__wbg_ptr);
+    }
+    onClick() {
+        wasm.jsroutesnapper_onClick(this.__wbg_ptr);
     }
 }
 
