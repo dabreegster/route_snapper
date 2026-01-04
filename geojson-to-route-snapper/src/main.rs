@@ -7,11 +7,11 @@ use geojson_to_route_snapper::convert_geojson;
 #[derive(Parser)]
 struct Args {
     /// Path to a .geojson file to convert
-    #[arg(long)]
+    #[arg(short, long)]
     input: String,
 
     /// Output file to write
-    #[arg(long, default_value = "snap.bin")]
+    #[arg(short, long, default_value = "snap.bin")]
     output: String,
 }
 

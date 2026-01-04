@@ -7,7 +7,7 @@ use osm_to_route_snapper::convert_osm;
 #[derive(Parser)]
 struct Args {
     /// Path to a .osm.pbf or .xml file to convert
-    #[arg(long)]
+    #[arg(short, long)]
     input: String,
 
     /// Path to GeoJSON file with the boundary to clip the input to
@@ -15,11 +15,11 @@ struct Args {
     boundary: Option<String>,
 
     /// Output file to write
-    #[arg(long, default_value = "snap.bin")]
+    #[arg(short, long, default_value = "snap.bin")]
     output: String,
 
     /// Omit road names from the output, saving some space.
-    #[clap(long)]
+    #[clap(short, long)]
     no_road_names: bool,
 }
 
