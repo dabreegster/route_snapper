@@ -17,6 +17,8 @@ pub fn convert_osm(
     boundary_gj: Option<String>,
     road_names: bool,
 ) -> Result<RouteSnapperMap> {
+    let boundary = get_boundary(boundary_gj)?;
+
     info!("Scraping OSM data");
     let (nodes, ways) = scrape_elements(&input_bytes, road_names)?;
     info!(
@@ -25,25 +27,47 @@ pub fn convert_osm(
         ways.len(),
     );
 
-    let mut boundary = None;
-    if let Some(gj_string) = boundary_gj {
-        let gj: geojson::Feature = gj_string.parse()?;
-        let boundary_geo: MultiPolygon = if matches!(
-            gj.geometry.as_ref().unwrap().value,
-            geojson::Value::Polygon(_)
-        ) {
-            MultiPolygon(vec![gj.try_into()?])
-        } else {
-            gj.try_into()?
-        };
-        boundary = Some(boundary_geo);
-    }
-
     let mut map = split_edges(nodes, ways, boundary.as_ref());
     if let Some(boundary) = boundary {
+        info!("Clipping boundary");
         clip(&mut map, boundary);
     }
     Ok(map)
+}
+
+fn get_boundary(
+    boundary_gj: Option<String>,
+) -> Result<Option<MultiPolygon>> {
+    let mut boundary = None;
+    if let Some(gj_string) = boundary_gj {
+        info!("Parsing boundary");
+        let gj: geojson::GeoJson = gj_string.parse()?;
+        let geom = match &gj {
+            geojson::GeoJson::Geometry(g) => Some(&g.value),
+            geojson::GeoJson::Feature(f) => f.geometry.as_ref().map(|g| &g.value),
+            geojson::GeoJson::FeatureCollection(fc) => {
+                if fc.features.len() > 1 { 
+                    return Err(anyhow::anyhow!( 
+                        "Expected exactly one feature in FeatureCollection, found {}", 
+                        fc.features.len() 
+                    )); 
+                }
+
+                fc.features.iter().find_map(|f| f.geometry.as_ref().map(|g| &g.value))
+            }
+        };
+
+        let geom = geom.ok_or_else(|| anyhow::anyhow!("No geometry found"))?;
+
+        let boundary_geo: MultiPolygon = match geom {
+            geojson::Value::Polygon(_) => MultiPolygon(vec![geom.try_into()?]),
+            geojson::Value::MultiPolygon(_) => geom.try_into()?,
+            _ => return Err(anyhow::anyhow!("Expected Polygon or MultiPolygon geometry")),
+        };
+
+        boundary = Some(boundary_geo);
+    }
+    Ok(boundary)
 }
 
 struct Way {
