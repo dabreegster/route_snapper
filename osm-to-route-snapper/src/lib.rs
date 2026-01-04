@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use geo::{
     line_measures::LengthMeasurable, BooleanOps, Contains, Coord, Haversine, Intersects,
     LineString, MultiLineString, MultiPolygon,
@@ -35,39 +35,39 @@ pub fn convert_osm(
     Ok(map)
 }
 
-fn get_boundary(
-    boundary_gj: Option<String>,
-) -> Result<Option<MultiPolygon>> {
-    let mut boundary = None;
-    if let Some(gj_string) = boundary_gj {
-        info!("Parsing boundary");
-        let gj: geojson::GeoJson = gj_string.parse()?;
-        let geom = match &gj {
-            geojson::GeoJson::Geometry(g) => Some(&g.value),
-            geojson::GeoJson::Feature(f) => f.geometry.as_ref().map(|g| &g.value),
-            geojson::GeoJson::FeatureCollection(fc) => {
-                if fc.features.len() > 1 { 
-                    return Err(anyhow::anyhow!( 
-                        "Expected exactly one feature in FeatureCollection, found {}", 
-                        fc.features.len() 
-                    )); 
-                }
+fn get_boundary(boundary_gj: Option<String>) -> Result<Option<MultiPolygon>> {
+    let Some(gj_string) = boundary_gj else {
+        return Ok(None);
+    };
 
-                fc.features.iter().find_map(|f| f.geometry.as_ref().map(|g| &g.value))
+    info!("Parsing boundary");
+    let gj: geojson::GeoJson = gj_string.parse()?;
+    let Some(geom) = (match gj {
+        geojson::GeoJson::Geometry(g) => Some(g.value),
+        geojson::GeoJson::Feature(f) => f.geometry.map(|g| g.value),
+        geojson::GeoJson::FeatureCollection(fc) => {
+            if fc.features.len() > 1 {
+                bail!(
+                    "Expected exactly one feature in FeatureCollection, found {}",
+                    fc.features.len()
+                );
             }
-        };
 
-        let geom = geom.ok_or_else(|| anyhow::anyhow!("No geometry found"))?;
+            fc.features
+                .into_iter()
+                .next()
+                .and_then(|f| f.geometry.map(|g| g.value))
+        }
+    }) else {
+        bail!("No geometry found");
+    };
 
-        let boundary_geo: MultiPolygon = match geom {
-            geojson::Value::Polygon(_) => MultiPolygon(vec![geom.try_into()?]),
-            geojson::Value::MultiPolygon(_) => geom.try_into()?,
-            _ => return Err(anyhow::anyhow!("Expected Polygon or MultiPolygon geometry")),
-        };
-
-        boundary = Some(boundary_geo);
-    }
-    Ok(boundary)
+    let boundary_geo: MultiPolygon = match geom {
+        geojson::Value::Polygon(_) => MultiPolygon(vec![geom.try_into()?]),
+        geojson::Value::MultiPolygon(_) => geom.try_into()?,
+        _ => bail!("Expected Polygon or MultiPolygon geometry"),
+    };
+    Ok(Some(boundary_geo))
 }
 
 struct Way {
