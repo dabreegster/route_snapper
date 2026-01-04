@@ -12,16 +12,46 @@ A common use case is routing along a street network. You can create an example
 file from OpenStreetMap data. The easiest way to do this for smaller areas is
 [in your web browser](https://dabreegster.github.io/route_snapper/import.html).
 
-For larger areas, you need an `.osm.xml` or `.osm.pbf` file, and optionally a
-GeoJSON file with one polygon or multipolygon representing the boundary of your
-area. You'll need to [install Rust](https://www.rust-lang.org/tools/install) to
-run this:
+For larger areas, you need an `.osm.xml` or `.osm.pbf` file. 
+ - For medium-sized areas you can use the
+   [OpenStreetMap.org exporter](https://www.openstreetmap.org/export)
+ - For larger areas you can download daily-updated national and regional files
+   from [geofabrik.de](https://download.geofabrik.de/).
+ - The files do not need to be modified prior to loading into this tool, but 
+   you can optionally use tools like [osmium](https://osmcode.org/osmium-tool/) 
+   to further filter which roads you want to be included in the routing file.
+
+You can optionally specify a GeoJSON file with one Polygon or MultiPolygon 
+representing the boundary of your area. The (multi)polygon can be specified as 
+a standalone Geometry, a standalone Feature, or a FeatureCollection containing
+a single Feature. You can use a tool like [geojson.io](https://geojson.io/) to 
+draw and export a boundary.
+
+You'll need to [install Rust](https://www.rust-lang.org/tools/install) to
+run this. You can also run it inside Docker using one of the 
+[official rust images](https://hub.docker.com/_/rust), e.g. `rust:alpine`.
+
+```sh
+cd osm-to-route-snapper
+cargo run --release -- -i path_to_osm.xml [-b path_to_boundary.geojson]
+```
+
+To run the tool multiple times, you can build it, then execute it directly:
+
+```sh
+cargo build --release
+./target/release/osm-to-route-snapper --help
+```
+
+Full command arguments:
 
 ```
-cd osm-to-route-snapper
-cargo run --release \
-  -i path_to_osm.xml \
-  [-b path_to_boundary.geojson]
+Options:
+  -i, --input <INPUT>        Path to a .osm.pbf or .xml file to convert
+  -b, --boundary <BOUNDARY>  Path to GeoJSON file with the boundary to clip the input to
+  -o, --output <OUTPUT>      Output file to write [default: snap.bin]
+  -n, --no-road-names        Omit road names from the output, saving some space
+  -h, --help                 Print help
 ```
 
 ### From custom GeoJSON files
@@ -31,9 +61,25 @@ network, you can turn this into a graph too. Try first [in your web
 browser](https://dabreegster.github.io/route_snapper/import.html) using the
 button at the top. For larger areas, install Rust and then:
 
-```
+```sh
 cd geojson-to-route-snapper
-cargo run --release -- --input path_to_network.geojson
+cargo run --release -- -i path_to_network.geojson
+```
+
+To run the tool multiple times, you can build it, then execute it directly:
+
+```sh
+cargo build --release
+./target/release/geojson-to-route-snapper --help
+```
+
+Full command arguments:
+
+```
+Options:
+  -i, --input <INPUT>    Path to a .geojson file to convert
+  -o, --output <OUTPUT>  Output file to write [default: snap.bin]
+  -h, --help             Print help
 ```
 
 For routing to work, the LineStrings must share points with other LineStrings.
