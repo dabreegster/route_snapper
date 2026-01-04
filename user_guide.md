@@ -23,9 +23,9 @@ For larger areas, you need an `.osm.xml` or `.osm.pbf` file.
 
 You can optionally specify a GeoJSON file with one Polygon or MultiPolygon 
 representing the boundary of your area. The (multi)polygon can be specified as 
-a standalone Geometry, a standalone Feature, or a GeometryCollection containing 
+a standalone Geometry, a standalone Feature, or a FeatureCollection containing
 a single Feature. You can use a tool like [geojson.io](https://geojson.io/) to 
-draw and export a file. 
+draw and export a boundary.
 
 You'll need to [install Rust](https://www.rust-lang.org/tools/install) to
 run this. You can also run it inside Docker using one of the 
