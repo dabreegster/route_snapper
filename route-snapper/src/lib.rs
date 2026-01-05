@@ -51,6 +51,10 @@ struct Config {
     /// but `getConfig` will show this.
     #[serde(skip_deserializing)]
     area_mode: bool,
+
+    /// Only allow another point to be placed if the road or street is the same as the last point
+    /// placed. This is useful for drawing a route along a single street.
+    same_road_mode: bool,
 }
 
 struct Router {
@@ -234,6 +238,7 @@ impl JsRouteSnapper {
             avoid_doubling_back: true,
             extend_route: true,
             area_mode: true,
+            same_road_mode: false,
         };
         self.route.recalculate_full_path(&self.router);
     }
@@ -349,6 +354,15 @@ impl JsRouteSnapper {
             );
 
             if let (Some(last), Waypoint::Snapped(current)) = (self.route.waypoints.last(), hover) {
+                let node1 = match last.to_owned() {
+                    Waypoint::Snapped(node) => node,
+                    Waypoint::Free(pt) => self.mouseover_node(pt).unwrap(),
+                };
+
+                if !is_connected(node1, current, &self.router) {
+                    return String::from("[]");
+                }
+
                 // If we're trying to drag a point or it's a closed area, don't show this preview
                 if !self.route.is_closed_area()
                     && !self
@@ -373,13 +387,15 @@ impl JsRouteSnapper {
                                     }
                                 }
                             } else {
-                                // It'll be a straight line
-                                let mut f = Feature::from(Geometry::from(&LineString::new(vec![
-                                    self.router.map.node(*last),
-                                    self.router.map.node(current),
-                                ])));
-                                f.set_property("snapped", false);
-                                result.push(f);
+                                // It'll be a straight line if the same road mode is on
+                                if !self.router.config.same_road_mode {
+                                    let mut f = Feature::from(Geometry::from(&LineString::new(vec![
+                                        self.router.map.node(*last),
+                                        self.router.map.node(current),
+                                    ])));
+                                    f.set_property("snapped", false);
+                                    result.push(f);
+                                }
                             }
                         }
                         Waypoint::Free(pt) => {
@@ -513,6 +529,7 @@ impl JsRouteSnapper {
                 };
                 // Don't keep every single update during a drag
                 let new_idx = self.route.move_waypoint(&self.router, idx, new_waypt);
+
                 self.mode = Mode::Dragging {
                     idx: new_idx,
                     at: new_waypt,
@@ -569,6 +586,7 @@ impl JsRouteSnapper {
                     if new_waypt != at {
                         // Don't keep every single update during a drag
                         let new_idx = self.route.move_waypoint(&self.router, idx, new_waypt);
+
                         self.mode = Mode::Dragging {
                             idx: new_idx,
                             at: new_waypt,
@@ -644,6 +662,23 @@ impl JsRouteSnapper {
                 // they meant to click and drag.
                 if self.route.full_path.contains(&hover.to_path_entry()) {
                     return;
+                }
+
+                if self.router.config.same_road_mode && self.route.waypoints.len() == 1 {
+                    let last = self.route.waypoints.last().unwrap();
+                    let last_pt = match *last {
+                        Waypoint::Snapped(node) => node,
+                        Waypoint::Free(pt) => self.mouseover_node(pt).unwrap(),
+                    };
+
+                    let hover_pt = match hover {
+                        Waypoint::Snapped(node) => node,
+                        Waypoint::Free(pt) => self.mouseover_node(pt).unwrap(),
+                    };
+
+                    if !is_connected(last_pt, hover_pt, &self.router) {
+                        return;
+                    }
                 }
 
                 self.before_update();
@@ -1097,7 +1132,23 @@ impl Route {
 
     // Returns the new full_path index
     fn move_waypoint(&mut self, router: &Router, full_idx: usize, new_waypt: Waypoint) -> usize {
+        if router.config.same_road_mode && full_idx > self.full_path.len() {
+            return 0;
+        }
         let old_waypt = self.full_path[full_idx].to_waypt().unwrap();
+
+        if router.config.same_road_mode {
+            // If we're moving the first point, don't allow it to be disconnected
+            if full_idx == 0 {
+                if let Waypoint::Snapped(node1) = old_waypt {
+                    if let Waypoint::Snapped(node2) = new_waypt {
+                        if !is_connected(node1, node2, router) {
+                            return 0;
+                        }
+                    }
+                }
+            }
+        }
 
         // Edge case when we've placed just one point, then try to drag it
         if self.waypoints.len() == 1 {
@@ -1139,10 +1190,25 @@ impl Route {
         }
 
         self.recalculate_full_path(router);
+
+        if router.config.same_road_mode {
+            // If we're moving the last point, don't allow it to be disconnected
+            if full_idx == self.full_path.len() - 1 {
+                if let Waypoint::Snapped(node1) = new_waypt {
+                    if let Waypoint::Snapped(node2) = self.waypoints.last().unwrap() {
+                        if !is_connected(node1, *node2, router) {
+                            self.waypoints.pop();
+                            self.recalculate_full_path(router);
+                            return self.full_path.len() - 1;
+                        }
+                    }
+                }
+            }
+        }
         self.full_path
             .iter()
             .position(|x| x.to_waypt() == Some(new_waypt))
-            .unwrap()
+            .unwrap_or(0)
     }
 
     // It might be possible for callers to recalculate something smaller, but it's not worth the
@@ -1165,11 +1231,14 @@ impl Route {
                 // (We don't need to do anything here -- the other point will get added)
             }
         }
+
         // Always add the last if it's different
         if let Some(last) = self.waypoints.last() {
-            let add = last.to_path_entry();
-            if self.full_path.last() != Some(&add) {
-                self.full_path.push(add);
+            if !router.config.same_road_mode {
+                let add = last.to_path_entry();
+                if self.full_path.last() != Some(&add) {
+                    self.full_path.push(add);
+                }
             }
         }
     }
@@ -1198,6 +1267,12 @@ impl Router {
                 if let PathEntry::Edge(e) = entry {
                     avoid.insert(e.0);
                 }
+            }
+        }
+
+        if self.config.same_road_mode {
+            if !is_connected(node1, node2, self) {
+                return None;
             }
         }
 
@@ -1291,6 +1366,28 @@ fn plain_list_names(names: BTreeSet<String>) -> String {
     s
 }
 
+fn is_connected(node1: NodeID, node2: NodeID, router: &Router) -> bool {
+    let node1_edges = router.graph.edges(node1);
+    let node1_road_names: HashSet<_> = node1_edges
+        .map(|(_, _, dir_edge)| router.map.edge(dir_edge.0).name.clone())
+        .collect();
+
+    let node2_edges = router.graph.edges(node2);
+    let node2_road_names: HashSet<_> = node2_edges
+        .map(|(_, _, dir_edge)| router.map.edge(dir_edge.0).name.clone())
+        .collect();
+
+    let common_road_names: HashSet<_> = node1_road_names
+        .intersection(&node2_road_names)
+        .collect();
+
+    // If the new waypoint doesn't share a road name with the last waypoint, don't add it
+    if common_road_names.is_empty() {
+        return false;
+    }
+
+    return true;
+}
 // TODO Hack, make render_geojson do something simpler
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 struct HashedPoint(i64, i64);
