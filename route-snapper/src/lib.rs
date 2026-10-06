@@ -136,7 +136,7 @@ enum Mode {
 impl JsRouteSnapper {
     #[wasm_bindgen(constructor)]
     pub fn new(map_bytes: &[u8]) -> Result<JsRouteSnapper, JsValue> {
-        if !cfg!(test) {
+        if cfg!(target_arch = "wasm32") && !cfg!(test) {
             START.call_once(|| {
                 console_log::init_with_level(log::Level::Info).unwrap();
             });
@@ -144,71 +144,7 @@ impl JsRouteSnapper {
             console_error_panic_hook::set_once();
         }
 
-        info!("Got {} bytes, deserializing", map_bytes.len());
-
-        let mut map: RouteSnapperMap = bincode::deserialize(map_bytes).map_err(err_to_js)?;
-
-        if !map.override_forward_costs.is_empty()
-            && map.override_forward_costs.len() != map.edges.len()
-        {
-            return Err(JsValue::from_str(
-                "override_forward_costs length doesn't match edges length",
-            ));
-        }
-        if !map.override_backward_costs.is_empty()
-            && map.override_backward_costs.len() != map.edges.len()
-        {
-            return Err(JsValue::from_str(
-                "override_backward_costs length doesn't match edges length",
-            ));
-        }
-
-        for (idx, edge) in map.edges.iter_mut().enumerate() {
-            edge.length_meters = edge.geometry.length(&Haversine);
-
-            if map.override_forward_costs.is_empty() {
-                edge.forward_cost = Some(edge.length_meters);
-            } else {
-                edge.forward_cost = map.override_forward_costs[idx];
-            }
-
-            if map.override_backward_costs.is_empty() {
-                edge.backward_cost = Some(edge.length_meters);
-            } else {
-                edge.backward_cost = map.override_backward_costs[idx];
-            }
-        }
-
-        info!("Finalizing JsRouteSnapper");
-
-        let mut graph: Graph = DiGraphMap::new();
-        for (idx, e) in map.edges.iter().enumerate() {
-            let id = EdgeID(idx as u32);
-            graph.add_edge(e.node1, e.node2, DirectedEdge(id, FORWARDS));
-            graph.add_edge(e.node2, e.node1, DirectedEdge(id, BACKWARDS));
-        }
-
-        // Euclidean distance on WGS84 coordinates works because we're just finding the closest
-        // point to the cursor, and always in a pretty small area. Using GeodesicDistance as a
-        // distance function is an alternative.
-        let mut nodes = Vec::new();
-        for (idx, pt) in map.nodes.iter().enumerate() {
-            nodes.push(GeomWithData::new([pt.x, pt.y], NodeID(idx as u32)));
-        }
-        let snap_to_nodes = RTree::bulk_load(nodes);
-
-        Ok(Self {
-            router: Router {
-                map,
-                graph,
-                config: Config::default(),
-            },
-            snap_to_nodes,
-            route: Route::new(),
-            mode: Mode::Neutral,
-            snap_mode: true,
-            previous_states: Vec::new(),
-        })
+        Self::from_graph_bytes(map_bytes).map_err(|err| JsValue::from_str(&err))
     }
 
     /// Updates configuration and recalculates paths. The caller should redraw.
@@ -704,25 +640,8 @@ impl JsRouteSnapper {
         self.clear_state();
 
         let waypoints: Vec<RouteWaypoint> = serde_wasm_bindgen::from_value(raw_waypoints)?;
-
-        for waypt in waypoints {
-            let pt = Coord {
-                x: waypt.lon,
-                y: waypt.lat,
-            };
-            if waypt.snapped {
-                if let Some(node) = self.mouseover_node(pt) {
-                    self.route
-                        .add_waypoint(&self.router, Waypoint::Snapped(node));
-                } else {
-                    return Err(JsValue::from_str("A waypoint didn't snap"));
-                }
-            } else {
-                self.route.add_waypoint(&self.router, Waypoint::Free(pt));
-            }
-        }
-
-        Ok(())
+        self.edit_existing_waypoints(waypoints)
+            .map_err(|err| JsValue::from_str(&err))
     }
 
     /// Render the graph as GeoJSON points and line-strings, for debugging.
@@ -928,6 +847,112 @@ impl JsRouteSnapper {
 }
 
 impl JsRouteSnapper {
+    /// The constructor for callers outside wasm: a corrupt graph returns an error here, where
+    /// building the `JsValue` error would panic on a native target.
+    pub fn from_graph_bytes(map_bytes: &[u8]) -> Result<JsRouteSnapper, String> {
+        info!("Got {} bytes, deserializing", map_bytes.len());
+
+        let mut map: RouteSnapperMap =
+            bincode::deserialize(map_bytes).map_err(|err| err.to_string())?;
+
+        if !map.override_forward_costs.is_empty()
+            && map.override_forward_costs.len() != map.edges.len()
+        {
+            return Err("override_forward_costs length doesn't match edges length".to_string());
+        }
+        if !map.override_backward_costs.is_empty()
+            && map.override_backward_costs.len() != map.edges.len()
+        {
+            return Err("override_backward_costs length doesn't match edges length".to_string());
+        }
+
+        for (idx, edge) in map.edges.iter_mut().enumerate() {
+            edge.length_meters = edge.geometry.length(&Haversine);
+
+            if map.override_forward_costs.is_empty() {
+                edge.forward_cost = Some(edge.length_meters);
+            } else {
+                edge.forward_cost = map.override_forward_costs[idx];
+            }
+
+            if map.override_backward_costs.is_empty() {
+                edge.backward_cost = Some(edge.length_meters);
+            } else {
+                edge.backward_cost = map.override_backward_costs[idx];
+            }
+        }
+
+        info!("Finalizing JsRouteSnapper");
+
+        let mut graph: Graph = DiGraphMap::new();
+        for (idx, e) in map.edges.iter().enumerate() {
+            let id = EdgeID(idx as u32);
+            graph.add_edge(e.node1, e.node2, DirectedEdge(id, FORWARDS));
+            graph.add_edge(e.node2, e.node1, DirectedEdge(id, BACKWARDS));
+        }
+
+        // Euclidean distance on WGS84 coordinates works because we're just finding the closest
+        // point to the cursor, and always in a pretty small area. Using GeodesicDistance as a
+        // distance function is an alternative.
+        let mut nodes = Vec::new();
+        for (idx, pt) in map.nodes.iter().enumerate() {
+            nodes.push(GeomWithData::new([pt.x, pt.y], NodeID(idx as u32)));
+        }
+        let snap_to_nodes = RTree::bulk_load(nodes);
+
+        Ok(Self {
+            router: Router {
+                map,
+                graph,
+                config: Config::default(),
+            },
+            snap_to_nodes,
+            route: Route::new(),
+            mode: Mode::Neutral,
+            snap_mode: true,
+            previous_states: Vec::new(),
+        })
+    }
+
+    /// `setRouteConfig` for callers outside wasm, which can't build a `JsValue`. `json` is a
+    /// `Config`, like `{"avoid_doubling_back": true, "extend_route": true}`.
+    pub fn set_route_config_json(&mut self, json: &str) -> Result<(), String> {
+        self.router.config = serde_json::from_str(json).map_err(|err| err.to_string())?;
+        self.route.recalculate_full_path(&self.router);
+        Ok(())
+    }
+
+    /// `editExisting` for callers outside wasm, which can't build a `JsValue`. `json` is the
+    /// `waypoints` property of a feature returned by `toFinalFeature`.
+    pub fn edit_existing_json(&mut self, json: &str) -> Result<(), String> {
+        let waypoints: Vec<RouteWaypoint> =
+            serde_json::from_str(json).map_err(|err| err.to_string())?;
+        self.edit_existing_waypoints(waypoints)
+    }
+
+    fn edit_existing_waypoints(&mut self, waypoints: Vec<RouteWaypoint>) -> Result<(), String> {
+        self.clear_state();
+
+        for waypt in waypoints {
+            let pt = Coord {
+                x: waypt.lon,
+                y: waypt.lat,
+            };
+            if waypt.snapped {
+                if let Some(node) = self.mouseover_node(pt) {
+                    self.route
+                        .add_waypoint(&self.router, Waypoint::Snapped(node));
+                } else {
+                    return Err("A waypoint didn't snap".to_string());
+                }
+            } else {
+                self.route.add_waypoint(&self.router, Waypoint::Free(pt));
+            }
+        }
+
+        Ok(())
+    }
+
     // Snaps first to free-drawn points, then nodes
     fn mouseover_something(&self, pt: Coord, circle_radius_meters: f64) -> Option<Waypoint> {
         // TODO For very long routes, this'll get slow

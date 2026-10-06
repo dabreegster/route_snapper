@@ -225,3 +225,40 @@ fn drag(snapper: &mut JsRouteSnapper, from: Waypoint, to: Waypoint) {
     optionally_mouseover_waypt(snapper, to);
     snapper.on_mouse_up();
 }
+
+#[test]
+fn test_edit_existing_json_round_trip() {
+    let map_bytes = std::fs::read("../examples/southwark.bin").unwrap();
+
+    for area_mode in [false, true] {
+        let mut snapper = JsRouteSnapper::new(&map_bytes).unwrap();
+        if area_mode {
+            snapper.set_area_mode();
+        } else {
+            snapper
+                .set_route_config_json(r#"{"avoid_doubling_back": true, "extend_route": true}"#)
+                .unwrap();
+        }
+        for waypt in [WAYPT1, WAYPT2, WAYPT3] {
+            must_mouseover_waypt(&mut snapper, waypt);
+            snapper.on_click();
+        }
+        let drawn = snapper.route.waypoints.clone();
+        let feature: serde_json::Value =
+            serde_json::from_str(&snapper.to_final_feature().unwrap()).unwrap();
+
+        let mut restored = JsRouteSnapper::new(&map_bytes).unwrap();
+        if area_mode {
+            restored.set_area_mode();
+        } else {
+            restored
+                .set_route_config_json(r#"{"avoid_doubling_back": true, "extend_route": true}"#)
+                .unwrap();
+        }
+        restored
+            .edit_existing_json(&feature["properties"]["waypoints"].to_string())
+            .unwrap();
+        assert_eq!(restored.route.waypoints, drawn, "area_mode={area_mode}");
+        assert_eq!(restored.to_final_feature(), snapper.to_final_feature());
+    }
+}
