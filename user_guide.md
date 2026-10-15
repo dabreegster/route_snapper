@@ -40,7 +40,7 @@ To run the tool multiple times, you can build it, then execute it directly:
 
 ```sh
 cargo build --release
-./target/release/osm-to-route-snapper --help
+../target/release/osm-to-route-snapper --help
 ```
 
 Full command arguments:
@@ -70,7 +70,7 @@ To run the tool multiple times, you can build it, then execute it directly:
 
 ```sh
 cargo build --release
-./target/release/geojson-to-route-snapper --help
+../target/release/geojson-to-route-snapper --help
 ```
 
 Full command arguments:
@@ -144,7 +144,7 @@ The above is all you need to get the tool working. To actually get the resulting
 
 ```
 document.getElementById("snap-tool").addEventListener("new-route", (e) => {
-  // A GeoJSON LineString feature with no properties set
+  // A GeoJSON LineString feature, including properties used by editExisting
   console.log(e.detail);
 });
 ```
@@ -166,11 +166,6 @@ There are a few methods on the `RouteSnapper` object you can call:
 - `isActive()` returns true when the tool is active and interpreting mouse events
 - `tearDown()` cleans up the internal sources and layers added to the map.
   (Note it doesn't yet clean up event listeners!)
-- `setRouteConfig` to change some settings for drawing routes
-  - `avoid_doubling_back` (disabled by default): When possible, avoid edges
-    already crossed for handling intermediate waypoints
-  - `extend_route` (disabled by default): The user can keep clicking to extend the end of the route. When false, the user can only draw two endpoints, then drag intermediate points.
-- `setAreaMode()` changes to producing polygons instead of line-strings.
 - `editExisting` to restart the tool with a previously created route. See notes
   in [the example](https://github.com/dabreegster/route_snapper/blob/main/examples/index.html)
   about how to call it.
@@ -187,6 +182,12 @@ There are a few methods on the `RouteSnapper` object you can call:
 
 If you're using the WASM API directly, the best reference is currently [the code](https://github.com/dabreegster/route_snapper/blob/main/route-snapper/src/lib.rs). Some particulars:
 
+- `setRouteConfig` changes settings for drawing routes:
+  - `avoid_doubling_back` (disabled by default): When possible, avoid edges
+    already crossed for handling intermediate waypoints.
+  - `extend_route` (disabled by default): The user can keep clicking to extend the end of the route. When false, the user can only draw two endpoints, then drag intermediate points.
+- `setAreaMode()` changes to producing polygons instead of line-strings.
+  The JavaScript `RouteSnapper` wrapper exposes these settings through its controls.
 - `renderGeojson` returns a GeoJSON FeatureCollection to render the current state of the tool.
   - It'll include LineStrings showing the confirmed route and also any speculative addition, based on the current state. The LineStrings will have a boolean `snapped` property, which is false if either end touches a freehand point.
   - In area mode, it'll have a Polygon once there are at least 3 points.
@@ -236,13 +237,14 @@ document.getElementById("snap-tool").addEventListener("no-new-route", () => {
 If you want `mapbox-gl-draw` to manage line-strings that the tool produces, you can do this:
 
 ```
-document.getElementById("snap-tool").addEventListener("new-route", () => {
+document.getElementById("snap-tool").addEventListener("new-route", (e) => {
   let feature = e.detail;
   let ids = drawControls.add(feature);
   // Act like we've selected the line-string we just drew
   drawControls.changeMode("direct_select", {
     featureId: ids[0],
   });
+});
 ```
 
 ## Routing caveats
