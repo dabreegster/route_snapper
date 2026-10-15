@@ -174,6 +174,7 @@ export class RouteSnapper {
     }
     this.map.removeLayer("route-points");
     this.map.removeLayer("route-lines");
+    this.map.removeLayer("route-polygons");
     this.map.removeSource("route-snapper");
     // TODO Remove the event listeners on document and map
   }
